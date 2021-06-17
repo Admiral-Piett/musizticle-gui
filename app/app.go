@@ -1,17 +1,17 @@
 package app
 
 import (
-"fyne.io/fyne/v2"
-"fyne.io/fyne/v2/app"
-"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"os"
 
 	//"fyne.io/fyne/v2/theme"
-"fyne.io/fyne/v2/widget"
+	"fyne.io/fyne/v2/widget"
 
-"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var minHeight float32 = float32(1200)
@@ -21,6 +21,7 @@ type Gui struct {
 	Logger *logrus.Logger
 	Data	map[string]interface{}
 	NowPlaying *fyne.Container
+	SelectedSong int
 }
 
 func NewApp() {
@@ -39,14 +40,16 @@ func NewApp() {
 	g := &Gui{
 		Logger: logger,
 		Data: map[string]interface{}{},
+		SelectedSong: 0,
 		NowPlaying: container.New(layout.NewCenterLayout(), widget.NewLabel("Welcome")),
 	}
 
 	tabs := container.NewAppTabs(
-		container.NewTabItemWithIcon("", theme.HomeIcon(), g.NowPlaying),
+		//container.NewTabItemWithIcon("", theme.HomeIcon(), g.NowPlaying),
+		container.NewTabItemWithIcon("Songs", theme.HomeIcon(), container.NewScroll(g.ReturnSongs())),
 		container.NewTabItem("Artist", g.ReturnArtists()),
 		container.NewTabItem("Albums", g.ReturnAlbums()),
-		container.NewTabItem("Songs", g.ReturnSongs()),
+		//container.NewTabItem("Songs", container.NewScroll(g.ReturnSongs())),
 	)
 
 	tabs.SetTabLocation(container.TabLocationLeading)
