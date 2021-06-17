@@ -76,8 +76,8 @@ func (g *Gui) clickedArtist(i int) {
 }
 
 
-var data = [][]string{[]string{"top left", "top right"},
-	[]string{"bottom left", "bottom right"}}
+//var data = [][]string{[]string{"top left", "top right"},
+//	[]string{"bottom left", "bottom right"}}
 
 //func (g *Gui) getSongsByArtist(a Artist) {
 //	fmt.Println(a)
