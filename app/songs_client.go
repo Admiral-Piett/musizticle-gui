@@ -9,11 +9,11 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
 	"github.com/sirupsen/logrus"
 	"image/color"
-	"log"
 	"net/http"
 	"time"
 )
@@ -90,7 +90,7 @@ func (g *Gui) ReturnSongs() *fyne.Container {
 	grid := container.New(layout.NewGridLayout(6))
 	for _, song := range(songs){
 		grid.Add(widget.NewButtonWithIcon("", theme.MediaPlayIcon(), func() {
-			g.playSong(song.ID)
+			g.playSong()
 		}))
 		grid.Add(canvas.NewText(song.Name, color.White))
 		grid.Add(canvas.NewText(song.ArtistName, color.White))
@@ -99,7 +99,7 @@ func (g *Gui) ReturnSongs() *fyne.Container {
 		grid.Add(canvas.NewText(fmt.Sprintf("%d", song.PlayCount), color.White))
 	}
 	//listWidget.OnSelected(func(id TableCellID) {
-	//	g.SelectedSong = listWidget.
+	//	g.SelectedSongId = listWidget.
 	//})
 	//play := widget.NewButtonWithIcon("", theme.MediaPlayIcon(), func() {
 	//	playSong(song.ID)
@@ -109,41 +109,55 @@ func (g *Gui) ReturnSongs() *fyne.Container {
 	return grid
 }
 
-func (g *Gui) getSong(songId int) error {
+func (g *Gui) SetUpSpeaker(){
+	g.Logger.Info("SettingUpSpeakerStart")
+	_, format, err := g.getSong(g.SelectedSongId)
+	if err != nil {
+		g.Logger.WithFields(logrus.Fields{LogFields.ErrorMessage: err}).Error("SettingUpSpeakerFailure")
+		panic(err)
+	}
+	g.SampleRate = format.SampleRate
+	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
+	g.Logger.Info("SettingUpSpeakerFinish")
+}
+
+func (g *Gui) getSong(songId int) (beep.StreamSeekCloser, beep.Format, error) {
 	url := fmt.Sprintf("%s/songs/%d", hostApi, songId)
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return err
+		return nil, beep.Format{}, err
 	}
-	request.Header.Set("Content-Type", "multipart/form-data; boundary=------------------------" + "11")
+	request.Header.Set("Content-Type", "multipart/form-data;")
 	client := &http.Client{}
 	resp, err := client.Do(request)
 	if err != nil {
-		return err
+		return nil, beep.Format{}, err
 	}
-	//file, header, err := resp.Request.FormFile("song")
-	//if err != nil {
-	//	return err
-	//}
-	//defer file.Close()
-	//fmt.Println(file)
-	//fmt.Println(header)
-	//fmt.Println(err)
 	streamer, format, err := mp3.Decode(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, beep.Format{}, err
 	}
-	defer streamer.Close()
-	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
-	speaker.Play(streamer)
-	select {}
-	return nil
+	return streamer, format, err
 }
 
-func (g *Gui) playSong(songId int) {
-	fmt.Printf("Playing Song - %d", songId)
-	err := g.getSong(songId)
-	if err != nil {
-		g.Logger.WithFields(logrus.Fields{LogFields.ErrorMessage: err}).Error("PlaySongFailure")
-	}
+func (g *Gui) playSong() {
+	g.Logger.Info("Playing Song - %d", g.SelectedSongId)
+	done := make(chan bool)
+	go func() {
+		streamer, format, err := g.getSong(g.SelectedSongId)
+		if err != nil {
+			g.Logger.WithFields(logrus.Fields{LogFields.ErrorMessage: err}).Error("PlaySongFailure")
+			return
+		}
+		defer streamer.Close()
+		resampled := beep.Resample(4, g.SampleRate, format.SampleRate, streamer)
+		speaker.Play(beep.Seq(resampled, beep.Callback(func() {
+			//	TODO - set up a channel to handle queue waiting & and reverse for recently played
+			g.NextSongId ++
+			g.SelectedSongId ++
+			done <- true
+			go g.playSong()
+		})))
+		<-done
+	}()
 }

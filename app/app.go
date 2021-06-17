@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
+	"github.com/faiface/beep"
 	"os"
 
 	//"fyne.io/fyne/v2/theme"
@@ -18,10 +19,12 @@ var minHeight float32 = float32(1200)
 var minWidth float32 = float32(2000)
 
 type Gui struct {
-	Logger *logrus.Logger
-	Data	map[string]interface{}
-	NowPlaying *fyne.Container
-	SelectedSong int
+	Logger         *logrus.Logger
+	Data           map[string]interface{}
+	NowPlaying     *fyne.Container
+	SelectedSongId int
+	NextSongId int
+	SampleRate     beep.SampleRate
 }
 
 func NewApp() {
@@ -38,14 +41,15 @@ func NewApp() {
 	myWindow.Resize(fyne.Size{minWidth, minHeight})
 
 	g := &Gui{
-		Logger: logger,
-		Data: map[string]interface{}{},
-		SelectedSong: 0,
-		NowPlaying: container.New(layout.NewCenterLayout(), widget.NewLabel("Welcome")),
+		Logger:         logger,
+		Data:           map[string]interface{}{},
+		SelectedSongId: 1,
+		NextSongId: 2,
+		NowPlaying:     container.New(layout.NewCenterLayout(), widget.NewLabel("Welcome")),
 	}
+	g.SetUpSpeaker()
 
 	tabs := container.NewAppTabs(
-		//container.NewTabItemWithIcon("", theme.HomeIcon(), g.NowPlaying),
 		container.NewTabItemWithIcon("Songs", theme.HomeIcon(), container.NewScroll(g.ReturnSongs())),
 		container.NewTabItem("Artist", g.ReturnArtists()),
 		container.NewTabItem("Albums", g.ReturnAlbums()),
