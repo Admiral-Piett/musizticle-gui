@@ -48,15 +48,32 @@ func getSongs() (Songs, error) {
 func (g *Gui) ReturnSongs() *fyne.Container {
 	songs, err := getSongs()
 	if err != nil {
-		g.Logger.WithFields(logrus.Fields{LogFields.ErrorMessage: err}).Error("GetArtistsFailure")
+		g.Logger.WithFields(logrus.Fields{LogFields.ErrorMessage: err}).Error("GetSongsFailure")
 		box := container.New(layout.NewCenterLayout(), widget.NewButton("Retry?", func() {
 			g.Logger.Info("Retrying")
-			// TODO - Add retry
+			g.ReturnSongs()
 		}))
 		return box
 	}
+	// TODO - start here, try to get the song list formatted into something readable with a header
+	//listWidget := widget.NewList(
+	//	func() int {
+	//		return len(songs)
+	//	},
+	//	func() fyne.CanvasObject {
+	//		return container.NewMax()
+	//	},
+	//	func(i widget.ListItemID, o fyne.CanvasObject) {
+	//		o.(*fyne.Container).Objects = []fyne.CanvasObject{
+	//			widget.NewLabel(fmt.Sprintf("%d",songs[i].ID)),
+	//			widget.NewLabel(songs[i].Name),
+	//			widget.NewLabel(songs[i].ArtistName),
+	//			widget.NewLabel(songs[i].AlbumName),
+	//			widget.NewLabel(fmt.Sprintf("%d",songs[i].TrackNumber)),
+	//			widget.NewLabel(fmt.Sprintf("%d",songs[i].PlayCount)),
+	//		}
+	//	})
 
-	count := 1
 	listWidget := widget.NewList(
 		func() int {
 			return len(songs)
@@ -66,15 +83,13 @@ func (g *Gui) ReturnSongs() *fyne.Container {
 		},
 		func(i widget.ListItemID, o fyne.CanvasObject) {
 			o.(*widget.Label).SetText(fmt.Sprintf("%d \t %s \t %s \t %s \t %d \t %d", songs[i].ID, songs[i].Name, songs[i].ArtistName, songs[i].AlbumName, songs[i].TrackNumber, songs[i].PlayCount))
-			count ++
 		})
 	listWidget.OnSelected = func(id widget.ListItemID) {
 		g.SelectedSongId = id + 1
 		g.Logger.Info(fmt.Sprintf("SelectedSong - %d", g.SelectedSongId))
 	}
 
-	content := container.NewMax(listWidget)
-	return content
+	return container.NewMax(listWidget)
 }
 
 func (g *Gui) SetUpSpeaker(){

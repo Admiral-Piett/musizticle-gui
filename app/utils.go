@@ -21,3 +21,5 @@ var LogFields = LogFieldStruct{
 	Size: "size",
 	StackContext: "stack_context",
 }
+
+var hostApi = "http://localhost:9000/api"

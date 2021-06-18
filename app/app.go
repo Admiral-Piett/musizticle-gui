@@ -45,6 +45,7 @@ func NewApp() {
 	g := &Gui{
 		Logger:         logger,
 		Data:           map[string]interface{}{},
+		//TODO wire up a display of currently playing song
 		SelectedSongId: 1,
 		NextSongId: 2,
 		NowPlaying:     container.New(layout.NewCenterLayout(), widget.NewLabel("Welcome")),
