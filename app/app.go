@@ -27,6 +27,8 @@ type Gui struct {
 	SampleRate     beep.SampleRate
 }
 
+var playing chan int = make(chan int, 1)
+
 func NewApp() {
 	logger := logrus.New()
 	if os.Getenv("LOG_LEVEL") == "DEBUG" {
@@ -36,7 +38,7 @@ func NewApp() {
 	}
 	logger.Info("Starting Sound Control GUI...")
 
-	myApp := app.New()
+	myApp := app.NewWithID("Musisticles")
 	myWindow := myApp.NewWindow("Media Master")
 	myWindow.Resize(fyne.Size{minWidth, minHeight})
 
@@ -47,13 +49,15 @@ func NewApp() {
 		NextSongId: 2,
 		NowPlaying:     container.New(layout.NewCenterLayout(), widget.NewLabel("Welcome")),
 	}
+
+	playing <-0
 	g.SetUpSpeaker()
 
 	play := widget.NewButtonWithIcon("", theme.MediaPlayIcon(), func() {
 		g.playSong()
 	})
 	stop := widget.NewButtonWithIcon("", theme.MediaStopIcon(), func() {
-		g.stopSong()
+		g.clickStop()
 	})
 	controller := container.NewHSplit(play, stop)
 	//content := container.NewMax(container.New(layout.NewGridLayout(1), controller, g.ReturnSongs()))

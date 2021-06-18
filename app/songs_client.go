@@ -56,70 +56,21 @@ func (g *Gui) ReturnSongs() *fyne.Container {
 		return box
 	}
 
-	//var table [][]string
-	//row := []string{"Track", "Artist", "Album", "Track Number", "Play Count"}
-	//table = append(table, row)
-	//for _, song := range(songs) {
-	//	row := []string{song.Name, song.ArtistName, song.AlbumName, fmt.Sprintf("%d", song.TrackNumber), fmt.Sprintf("%d", song.PlayCount)}
-	//	table = append(table, row)
-	//}
-	//
-	//tableWidget := widget.NewTable(
-	//	func() (int, int) {
-	//		return len(table), len(table[0])
-	//	},
-	//	func() fyne.CanvasObject {
-	//		return widget.NewLabel("wide content")
-	//	},
-	//	func(i widget.TableCellID, o fyne.CanvasObject) {
-	//		o.(*widget.Label).SetText(table[i.Row][i.Col])
-	//	})
-	//
-	//tableWidget.OnSelected = func(id widget.TableCellID) {
-	//	g.Logger.Info(fmt.Sprintf("Clicked - %v+", id))
-	//}
-
-
-	//grid := container.New(layout.NewGridLayout(6))
-	//for _, song := range(songs){
-	//	grid.Add(widget.NewButtonWithIcon("", theme.MediaPlayIcon(), func() {
-	//		g.playSong()
-	//	}))
-	//	grid.Add(canvas.NewText(song.Name, color.White))
-	//	grid.Add(canvas.NewText(song.ArtistName, color.White))
-	//	grid.Add(canvas.NewText(song.AlbumName, color.White))
-	//	grid.Add(canvas.NewText(fmt.Sprintf("%d", song.TrackNumber), color.White))
-	//	grid.Add(canvas.NewText(fmt.Sprintf("%d", song.PlayCount), color.White))
-	//}
-	//return grid`
-
+	count := 1
 	listWidget := widget.NewList(
 		func() int {
 			return len(songs)
 		},
 		func() fyne.CanvasObject {
-			//name := canvas.NewText("Name", color.White)
-			//artist := canvas.NewText("Artist", color.White)
-			//album := canvas.NewText("Album", color.White)
-			//trackNumber := canvas.NewText("Track Number", color.White)
-			//playCount := canvas.NewText("Play Count", color.White)
-			//return container.New(layout.NewHBoxLayout(), name, artist, album, trackNumber, playCount)
-			//return container.NewHBox(name, artist, album, trackNumber, playCount)
-			//return widget.NewTextGridFromString("name\tartist\talbum\ttrackNumber\tplayCount")
 			return widget.NewLabel("name\tartist\talbum\ttrackNumber\tplayCount")
 		},
 		func(i widget.ListItemID, o fyne.CanvasObject) {
-			//name := canvas.NewText(songs[i].Name, color.White)
-			//artist := canvas.NewText(songs[i].ArtistName, color.White)
-			//album := canvas.NewText(songs[i].AlbumName, color.White)
-			//trackNumber := canvas.NewText(fmt.Sprintf("%d", songs[i].TrackNumber), color.White)
-			//playCount := canvas.NewText(fmt.Sprintf("%d", songs[i].PlayCount), color.White)
-			//o.(*fyne.CanvasObject).SetCo layout.NewHBoxLayout(), name, artist, album, trackNumber, playCount)
-			o.(*widget.Label).SetText(fmt.Sprintf("%s \t %s \t %s \t %d \t %d", songs[i].Name, songs[i].ArtistName, songs[i].AlbumName, songs[i].TrackNumber, songs[i].PlayCount))
+			o.(*widget.Label).SetText(fmt.Sprintf("%d \t %s \t %s \t %s \t %d \t %d", songs[i].ID, songs[i].Name, songs[i].ArtistName, songs[i].AlbumName, songs[i].TrackNumber, songs[i].PlayCount))
+			count ++
 		})
-
 	listWidget.OnSelected = func(id widget.ListItemID) {
-		g.Logger.Info(fmt.Sprintf("Clicked - %s", id))
+		g.SelectedSongId = id + 1
+		g.Logger.Info(fmt.Sprintf("SelectedSong - %d", g.SelectedSongId))
 	}
 
 	content := container.NewMax(listWidget)
@@ -158,29 +109,43 @@ func (g *Gui) getSong(songId int) (beep.StreamSeekCloser, beep.Format, error) {
 }
 
 func (g *Gui) playSong() {
-	g.Logger.Info(fmt.Sprintf("Playing Song - %d", g.SelectedSongId))
-	done := make(chan bool)
-	go func() {
-		streamer, format, err := g.getSong(g.SelectedSongId)
-		if err != nil {
-			g.Logger.WithFields(logrus.Fields{LogFields.ErrorMessage: err}).Error("PlaySongFailure")
-			return
-		}
-		defer streamer.Close()
-		resampled := beep.Resample(4, g.SampleRate, format.SampleRate, streamer)
-		speaker.Play(beep.Seq(resampled, beep.Callback(func() {
-			// TODO - wire up channels to indicate playing or not to not have duplicate playing contexts over lapping
-			//	TODO - set up a channel to handle queue waiting & and reverse for recently played
-			g.NextSongId ++
-			g.SelectedSongId ++
-			done <- true
-			go g.playSong()
-		})))
-		<-done
-	}()
+	currentSongId := <- playing
+	if currentSongId == g.SelectedSongId {
+		playing <- currentSongId
+		g.Logger.Info(fmt.Sprintf("CurrentSongAlreadyPlaying - %d", currentSongId))
+	} else {
+		go func() {
+			g.Logger.Info(fmt.Sprintf("Playing Song - %d", g.SelectedSongId))
+			streamer, format, err := g.getSong(g.SelectedSongId)
+			if err != nil {
+				g.Logger.WithFields(logrus.Fields{LogFields.ErrorMessage: err}).Error("PlaySongFailure")
+				return
+			}
+			defer streamer.Close()
+
+			playing <- g.SelectedSongId
+
+			resampled := beep.Resample(4, g.SampleRate, format.SampleRate, streamer)
+			//Clear any existing songs that might be going on
+			speaker.Clear()
+			//Create this to make the app wait for this song to finish before the call back fires
+			done := make(chan bool)
+			speaker.Play(beep.Seq(resampled, beep.Callback(func() {
+				// TODO - wire up channels to indicate playing or not to not have duplicate playing contexts over lapping
+				//	TODO - set up a channel to handle queue waiting & and reverse for recently played
+				g.NextSongId++
+				g.SelectedSongId++
+				done <- true
+				go g.playSong()
+			})))
+			<-done
+		}()
+	}
 }
 
-func (g *Gui) stopSong() {
-	g.Logger.Info("Playing Song - %d", g.SelectedSongId)
+func (g *Gui) clickStop() {
+	g.Logger.Info("StoppingCurrentSong")
+	<- playing
+	playing <- 0
 	speaker.Clear()
 }
