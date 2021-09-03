@@ -60,18 +60,21 @@ func NewApp() {
 	stop := widget.NewButtonWithIcon("", theme.MediaStopIcon(), func() {
 		g.clickStop()
 	})
-	controller := container.NewHSplit(play, stop)
+	//controller := container.NewHSplit(play, stop)
+	controller := container.NewAdaptiveGrid(2, play, stop)
 	//content := container.NewMax(container.New(layout.NewGridLayout(1), controller, g.ReturnSongs()))
 	content := container.New(layout.NewBorderLayout(controller, container.NewScroll(g.ReturnSongs()), nil, nil, ), controller, container.NewScroll(g.ReturnSongs()))
 
-	//tabs := container.NewAppTabs(
-	//	container.NewTabItemWithIcon("Songs", theme.HomeIcon(), container.NewScroll(g.ReturnSongs())),
-	//	//container.NewTabItem("Artist", g.ReturnArtists()),
-	//	//container.NewTabItem("Albums", g.ReturnAlbums()),
-	//	//container.NewTabItem("Songs", container.NewScroll(g.ReturnSongs())),
-	//)
-	//tabs.SetTabLocation(container.TabLocationLeading)
+	tabs := container.NewAppTabs(
+		container.NewTabItem("Songs", content),
+		container.NewTabItem("Playlists", container.New(layout.NewCenterLayout(), widget.NewLabel("Playlists"))),
+		container.NewTabItem("Now Playing", container.New(layout.NewCenterLayout(), widget.NewLabel("Now Playing"))),
+		//container.NewTabItem("Albums", g.ReturnAlbums()),
+		//container.NewTabItem("Songs", container.NewScroll(g.ReturnSongs())),
+	)
+	tabs.SetTabLocation(container.TabLocationLeading)
 
-	myWindow.SetContent(content)
+	myWindow.SetContent(tabs)
+	//myWindow.SetContent(content)
 	myWindow.ShowAndRun()
 }

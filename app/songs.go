@@ -46,6 +46,7 @@ func getSongs() (Songs, error) {
 }
 
 func (g *Gui) ReturnSongs() *fyne.Container {
+	g.Logger.Info("ReturnSongsStart")
 	songs, err := getSongs()
 	if err != nil {
 		g.Logger.WithFields(logrus.Fields{LogFields.ErrorMessage: err}).Error("GetSongsFailure")
@@ -55,16 +56,48 @@ func (g *Gui) ReturnSongs() *fyne.Container {
 		}))
 		return box
 	}
-	// TODO - start here, try to get the song list formatted into something readable with a header
+	g.Logger.Info("BuildingSongsList")
+	list := []fyne.CanvasObject{}
+	for _, s := range songs {
+		list = append(list, widget.NewLabel(fmt.Sprintf("%d",s.ID)))
+		list = append(list, widget.NewLabel(s.Name))
+		list = append(list, widget.NewLabel(s.ArtistName))
+		list = append(list, widget.NewLabel(s.AlbumName))
+		list = append(list, widget.NewLabel(fmt.Sprintf("%d",s.TrackNumber)))
+		list = append(list, widget.NewLabel(fmt.Sprintf("%d",s.PlayCount)))
+	}
+	grid := NewSongGrid(6, list...)
+
+	//grid := container.NewAdaptiveGrid(6)
+	//for _, s := range songs {
+	//	grid.Add(widget.NewLabel(fmt.Sprintf("%d",s.ID)))
+	//	grid.Add(widget.NewLabel(s.Name))
+	//	grid.Add(widget.NewLabel(s.ArtistName))
+	//	grid.Add(widget.NewLabel(s.AlbumName))
+	//	grid.Add(widget.NewLabel(fmt.Sprintf("%d",s.TrackNumber)))
+	//	grid.Add(widget.NewLabel(fmt.Sprintf("%d",s.PlayCount)))
+	//}
+
+	// TODO - this worked kind of, but had a hard time rendering
 	//listWidget := widget.NewList(
 	//	func() int {
 	//		return len(songs)
 	//	},
 	//	func() fyne.CanvasObject {
-	//		return container.NewMax()
+	//		//return container.NewAdaptiveGrid(6)
+	//		placeholder := []fyne.CanvasObject{
+	//			widget.NewLabel("ID"),
+	//			widget.NewLabel("Name"),
+	//			widget.NewLabel("Artist"),
+	//			widget.NewLabel("Album"),
+	//			widget.NewLabel("Track Number"),
+	//			widget.NewLabel("Play Count"),
+	//		}
+	//		return container.NewAdaptiveGrid(6, placeholder...)
+	//		//return NewSongRow()
 	//	},
 	//	func(i widget.ListItemID, o fyne.CanvasObject) {
-	//		o.(*fyne.Container).Objects = []fyne.CanvasObject{
+	//		objs := []fyne.CanvasObject{
 	//			widget.NewLabel(fmt.Sprintf("%d",songs[i].ID)),
 	//			widget.NewLabel(songs[i].Name),
 	//			widget.NewLabel(songs[i].ArtistName),
@@ -72,24 +105,36 @@ func (g *Gui) ReturnSongs() *fyne.Container {
 	//			widget.NewLabel(fmt.Sprintf("%d",songs[i].TrackNumber)),
 	//			widget.NewLabel(fmt.Sprintf("%d",songs[i].PlayCount)),
 	//		}
+	//
+	//		o.(*fyne.Container).Objects = objs
 	//	})
+	//
+	////listWidget := widget.NewList(
+	////	func() int {
+	////		return len(songs)
+	////	},
+	////	func() fyne.CanvasObject {
+	////		return widget.NewLabel("name\tartist\talbum\ttrackNumber\tplayCount")
+	////	},
+	////	func(i widget.ListItemID, o fyne.CanvasObject) {
+	////		o.(*widget.Label).SetText(fmt.Sprintf("%d \t %s \t %s \t %s \t %d \t %d", songs[i].ID, songs[i].Name, songs[i].ArtistName, songs[i].AlbumName, songs[i].TrackNumber, songs[i].PlayCount))
+	////	})
+	//listWidget.OnSelected = func(id widget.ListItemID) {
+	//	g.SelectedSongId = id + 1
+	//	g.Logger.Info(fmt.Sprintf("SelectedSong - %d", g.SelectedSongId))
+	//}
 
-	listWidget := widget.NewList(
-		func() int {
-			return len(songs)
-		},
-		func() fyne.CanvasObject {
-			return widget.NewLabel("name\tartist\talbum\ttrackNumber\tplayCount")
-		},
-		func(i widget.ListItemID, o fyne.CanvasObject) {
-			o.(*widget.Label).SetText(fmt.Sprintf("%d \t %s \t %s \t %s \t %d \t %d", songs[i].ID, songs[i].Name, songs[i].ArtistName, songs[i].AlbumName, songs[i].TrackNumber, songs[i].PlayCount))
-		})
-	listWidget.OnSelected = func(id widget.ListItemID) {
-		g.SelectedSongId = id + 1
-		g.Logger.Info(fmt.Sprintf("SelectedSong - %d", g.SelectedSongId))
+	header := []fyne.CanvasObject{
+		widget.NewLabel("ID"),
+		widget.NewLabel("Name"),
+		widget.NewLabel("Artist"),
+		widget.NewLabel("Album"),
+		widget.NewLabel("Track Number"),
+		widget.NewLabel("Play Count"),
 	}
-
-	return container.NewMax(listWidget)
+	titles := container.NewAdaptiveGrid(6, header...)
+	//return container.New(layout.NewBorderLayout(titles, nil, nil, nil), titles, listWidget)
+	return container.New(layout.NewBorderLayout(titles, nil, nil, nil), titles, grid)
 }
 
 func (g *Gui) SetUpSpeaker(){
