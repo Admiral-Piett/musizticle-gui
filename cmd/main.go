@@ -1,45 +1,62 @@
 package main
 
 import (
-	"github.com/Admiral-Piett/media_master_gui/app"
+	"gioui.org/app"
+	"gioui.org/font/gofont"
+	"gioui.org/io/system"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/widget"
+	"gioui.org/widget/material"
+	"log"
+	"os"
 )
 
-func main() {
-	app.NewApp()
-}
+func draw(w *app.Window) error {
+	var ops op.Ops
+	var startButton widget.Clickable
 
-//package main
-//
-//import (
-//	"fmt"
-//
-//	"fyne.io/fyne/v2"
-//	"fyne.io/fyne/v2/app"
-//	"fyne.io/fyne/v2/container"
-//	"fyne.io/fyne/v2/data/binding"
-//	"fyne.io/fyne/v2/widget"
-//)
-//
-//func main() {
-//	myApp := app.New()
-//	myWindow := myApp.NewWindow("List Data")
-//
-//	data := binding.BindStringList(
-//		&[]string{"Item 1", "Item 2", "Item 3"},
-//	)
-//
-//	list := widget.NewListWithData(data,
-//		func() fyne.CanvasObject {
-//			return widget.NewLabel("template")
-//		},
-//		func(i binding.DataItem, o fyne.CanvasObject) {
-//			o.(*widget.Label).Bind(i.(binding.String))
-//		})
-//
-//	add := widget.NewButton("Append", func() {
-//		val := fmt.Sprintf("Item %d", data.Length()+1)
-//		data.Append(val)
-//	})
-//	myWindow.SetContent(container.NewBorder(nil, add, nil, nil, list))
-//	myWindow.ShowAndRun()
-//}
+	// TODO - Explore other font collections
+	th := material.NewTheme(gofont.Collection())
+	for {
+		select {
+			case e := <-w.Events():
+				switch e := e.(type) {
+				case system.FrameEvent:
+					if startButton.Clicked() {
+						log.Println("I'm clicked")
+					}
+					gtx := layout.NewContext(&ops, e)
+					layout.Flex{
+						// Vertical alignment, from top to bottom
+						Axis: layout.Vertical,
+						// Empty space is left at the start, i.e. at the top
+						Spacing: layout.SpaceStart,
+					}.Layout(gtx, layout.Rigid(
+						func(gtx layout.Context) layout.Dimensions {
+							btn := material.Button(th, &startButton, "Button me up")
+							return btn.Layout(gtx)
+						},
+					),
+					)
+					e.Frame(gtx.Ops)
+				}
+			}
+
+		}
+	return nil
+	}
+
+
+func main() {
+	go func() {
+		// create new window
+		w := app.NewWindow()
+
+		if err := draw(w); err != nil {
+			log.Fatal(err)
+		}
+		os.Exit(0)
+	}()
+	app.Main()
+}
