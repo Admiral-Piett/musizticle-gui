@@ -24,6 +24,11 @@ type Song struct {
 	Title string
 }
 var songs Songs
+// TODO - Explore other font collections
+var th = material.NewTheme(gofont.Collection())
+// NOTE: This has to be set out here, otherwise the scroll context can't be maintained across events.
+//  https://gioui.org/doc/architecture#my-list-list-won-t-scroll
+var trackList = &layout.List{Axis: layout.Vertical}
 
 func (s *Songs) setList() {
 	for i := 1; i <= 100; i++ {
@@ -31,39 +36,26 @@ func (s *Songs) setList() {
 	}
 }
 
-func setSongs(gtx layout.Context, th *material.Theme) layout.Dimensions {
-	//p := layout.Position{
-	//	First:      0,
-	//	Offset:     0,
-	//	OffsetLast: 0,
-	//	Count:      len(songs.song_list),
-	//	Length:     0,
-	//}
+// FIXME - need this?
+func generateListEntry(gtx layout.Context, i int) layout.Dimensions {
+	text := fmt.Sprintf("Item %d", i)
+	l := material.Label(th, unit.Dp(float32(20)), text)
+	return l.Layout(gtx)
+}
 
-	l := layout.List{Axis: layout.Vertical}
-	l_dimensions := l.Layout(gtx, len(songs.song_list), func(gtx layout.Context, index int) layout.Dimensions {
+
+// TODO - NEXT - Wire up the api calls and populate this list for real
+func setSongs(gtx layout.Context) layout.Dimensions {
+	l_dimensions := trackList.Layout(gtx, len(songs.song_list), func(gtx layout.Context, index int) layout.Dimensions {
 		s := &songs.song_list[index]
 		if s.line.Clicked() {
 			songs.selected = index
 			fmt.Printf("Clicked - %d", index)
 		}
 		dims := material.Clickable(gtx, &s.line, func(gtx layout.Context) layout.Dimensions {
-			//return widget.Label{}.Layout(gtx, th.Shaper, th., th.TextSize, s.Title)
-			//// FIXME - Do I need this uniform thing?  I don't think so, could likely just do a text.
-			return layout.UniformInset(unit.Sp(12)).Layout(gtx,
-				material.H6(th, s.Title).Layout,
-			)
+			return material.Label(th, unit.Dp(float32(20)), s.Title).Layout(gtx)
 		})
 		return dims
-		//return layout.Stack{Alignment: layout.S}.Layout(gtx, layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-		//	//dimensions
-		//	dims := material.Clickable(gtx, &s.line, func(gtx layout.Context) layout.Dimensions {
-		//		return layout.UniformInset(unit.Sp(12)).Layout(gtx,
-		//			material.H6(th, s.Title).Layout,
-		//		)
-		//	})
-		//	return dims
-		//}))
 	})
 	return l_dimensions
 }
@@ -72,20 +64,16 @@ func draw(w *app.Window) error {
 	var ops op.Ops
 	var startButton widget.Clickable
 
-	// TODO - Explore other font collections
-	th := material.NewTheme(gofont.Collection())
 	for {
 		select {
 		case e := <-w.Events():
 			switch e := e.(type) {
 			case system.FrameEvent:
-				//log.Printf("event happened %v", e)
 				if startButton.Clicked() {
 					log.Println("I'm clicked")
 					return nil
 				}
 				gtx := layout.NewContext(&ops, e)
-				//setSongs(gtx, th)
 				layout.Flex{
 					// Vertical alignment, from top to bottom
 					Axis: layout.Vertical,
@@ -93,7 +81,7 @@ func draw(w *app.Window) error {
 					Spacing: layout.SpaceStart,
 				}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return setSongs(gtx, th)
+						return setSongs(gtx)
 					}),
 					layout.Rigid(
 						func(gtx layout.Context) layout.Dimensions {
@@ -102,7 +90,6 @@ func draw(w *app.Window) error {
 						},
 					),
 				)
-				w.Invalidate()
 				e.Frame(gtx.Ops)
 			}
 		}
