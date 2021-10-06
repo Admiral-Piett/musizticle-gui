@@ -15,32 +15,28 @@ import (
 // TODO - Explore other font collections
 var th = material.NewTheme(gofont.Collection())
 
-// NOTE: This has to be set out here, otherwise the scroll context can't be maintained across events.
-//  https://gioui.org/doc/architecture#my-list-list-won-t-scroll
-// QUESTION: Set and reset this to filter by things?
-var displayList = &layout.List{Axis: layout.Vertical}
 
-
-func draw(w *app.Window) error {
+func (a *App) draw() error {
 	var ops op.Ops
 	var startButton widget.Clickable
-
-	var songs Songs
 
 	for {
 		//log.Println("loop")
 		select {
 		case <-displayChange:
 			log.Println("update display")
-			w.Invalidate()
-		case e := <-w.Events():
+			a.window.Invalidate()
+		case e := <-a.window.Events():
 			switch e := e.(type) {
 			case system.FrameEvent:
 				gtx := layout.NewContext(&ops, e)
 
 				if startButton.Clicked() {
 					log.Println("I'm clicked")
-					return nil
+				}
+				if a.songs.reload.Clicked() {
+					log.Println("Reload clicked")
+					go a.songs.initSongs()
 				}
 				layout.Flex{
 					// Vertical alignment, from top to bottom
@@ -49,7 +45,7 @@ func draw(w *app.Window) error {
 					Spacing: layout.SpaceStart,
 				}.Layout(gtx,
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return songs.ShowSongs(gtx)
+						return a.ShowSongs(gtx)
 					}),
 					layout.Rigid(
 						func(gtx layout.Context) layout.Dimensions {
@@ -70,8 +66,15 @@ func main() {
 	go func() {
 		// create new window
 		w := app.NewWindow()
+		s := Songs{}
+		a := App{
+			displayList: &layout.List{Axis: layout.Vertical},
+			songs: s,
+			window: w,
+		}
+		go a.songs.initSongs()
 
-		if err := draw(w); err != nil {
+		if err := a.draw(); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)

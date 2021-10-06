@@ -1,14 +1,25 @@
 package main
 
-import "gioui.org/widget"
+import (
+	"gioui.org/layout"
+	"gioui.org/widget"
+)
+import "gioui.org/app"
 
 var displayChange = make(chan bool)
+
+type App struct {
+	displayList *layout.List
+	songs Songs
+	window *app.Window
+}
 
 type Songs struct {
 	songList []Song
 	selected int
 	populated bool
 	inProgress    bool
+	reload widget.Clickable
 	loadingButton widget.Clickable
 }
 

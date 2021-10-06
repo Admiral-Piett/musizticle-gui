@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 // TODO - environmentalize
@@ -35,29 +36,23 @@ func (s *Songs) clickSong(songId int) {
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	// TODO - NEXT - start here, add streaming
-	//  Consider adding an App Struct and carrying app status here (selected song, currently playing a song, beep SampleRate etc.)
 	fmt.Println(body)
 	log.Println("clickSongComplete")
 }
 
-func (s *Songs) ShowSongs(gtx layout.Context) layout.Dimensions {
-	go s.getSongs()
+func (a *App) ShowSongs(gtx layout.Context) layout.Dimensions {
 
-	if !s.populated {
-		text := "Loading... Click me if I take too long"
-		//FIXME - this should be able to swap, but the concurrency isn't right
-		//if !s.inProgress {
-		//	text = "Retry"
-		//}
-		// If we're not populated yet, and we're no longer in progress that means we failed to get the songs so expose
-		//a retry button
-		return material.Button(th, &s.loadingButton, text).Layout(gtx)
+	if !a.songs.populated {
+		if !a.songs.inProgress {
+			return material.Button(th, &a.songs.reload, "Retry").Layout(gtx)
+		}
+		return material.Button(th, &a.songs.loadingButton, "Loading... Click me if I take too long").Layout(gtx)
 	}
 
-	listDimensions := displayList.Layout(gtx, len(s.songList), func(gtx layout.Context, index int) layout.Dimensions {
-		song := &s.songList[index]
+	listDimensions := a.displayList.Layout(gtx, len(a.songs.songList), func(gtx layout.Context, index int) layout.Dimensions {
+		song := &a.songs.songList[index]
 		if song.line.Clicked() {
-			s.clickSong(song.Id)
+			a.songs.clickSong(song.Id)
 		}
 		dims := material.Clickable(gtx, &song.line, func(gtx layout.Context) layout.Dimensions {
 			return material.Label(th, unit.Dp(float32(20)), song.Name).Layout(gtx)
@@ -67,7 +62,7 @@ func (s *Songs) ShowSongs(gtx layout.Context) layout.Dimensions {
 	return listDimensions
 }
 
-func (s *Songs) getSongs() {
+func (s *Songs) initSongs() {
 	if s.inProgress || s.populated {
 		return
 	}
@@ -77,6 +72,7 @@ func (s *Songs) getSongs() {
 		s.inProgress = false
 		displayChange <- true
 	}()
+	time.Sleep(5 * time.Second)
 	url := fmt.Sprintf("%s/songs", HOST)
 	resp, err := http.Get(url)
 	if err != nil {
