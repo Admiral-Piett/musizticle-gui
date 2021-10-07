@@ -2,19 +2,17 @@ package main
 
 import (
 	"gioui.org/app"
-	"gioui.org/font/gofont"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/faiface/beep/speaker"
 	"log"
 	"os"
+	"time"
 )
-
-// TODO - Explore other font collections
-var th = material.NewTheme(gofont.Collection())
-
 
 func (a *App) draw() error {
 	var ops op.Ops
@@ -44,8 +42,11 @@ func (a *App) draw() error {
 					// Empty space is left at the start, i.e. at the top
 					Spacing: layout.SpaceStart,
 				}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return SongsHeader(gtx)
+					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return a.ShowSongs(gtx)
+						return a.SongsList(gtx)
 					}),
 					layout.Rigid(
 						func(gtx layout.Context) layout.Dimensions {
@@ -62,17 +63,40 @@ func (a *App) draw() error {
 	return nil
 }
 
+// Initialize the speaker with the settings from the first song we have.
+func (a *App) SetUpSpeaker() {
+	log.Println("SettingUpSpeakerStart")
+	_, format, err := a.getSong(a.SelectedSongId)
+	if err != nil {
+		log.Printf("SettingUpSpeakerFailure - %+v\n", err)
+		panic(err)
+	}
+	a.SampleRate = format.SampleRate
+	err = speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
+	if err != nil {
+		log.Printf("SettingUpSpeakerFailure - %+v\n", err)
+		panic(err)
+	}
+	log.Println("SettingUpSpeakerFinish")
+}
+
 func main() {
 	go func() {
 		// create new window
-		w := app.NewWindow()
+		w := app.NewWindow(app.Title("Media Gui"), app.Size(unit.Dp(1500), unit.Dp(900)))
 		s := Songs{}
 		a := App{
 			displayList: &layout.List{Axis: layout.Vertical},
-			songs: s,
-			window: w,
+			songs:       s,
+			window:      w,
+			SelectedSongId: 1,
+			NextSongId: 2,
 		}
 		go a.songs.initSongs()
+
+		//Put an invalid song id on the playing queue to start with
+		playing <-0
+		a.SetUpSpeaker()
 
 		if err := a.draw(); err != nil {
 			log.Fatal(err)
