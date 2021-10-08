@@ -32,7 +32,7 @@ func (a *App) draw() error {
 				}
 				if a.play.Clicked() {
 					log.Println("Play clicked")
-					go a.clickSong()
+					go a.playSong()
 				}
 				if a.stop.Clicked() {
 					log.Println("Stop clicked")
@@ -73,7 +73,7 @@ func (a *App) draw() error {
 // Initialize the speaker with the settings from the first song we have.
 func (a *App) SetUpSpeaker() {
 	log.Println("SettingUpSpeakerStart")
-	_, format, err := a.getSong(a.SelectedSongId)
+	_, format, err := a.getSong(1)
 	if err != nil {
 		log.Printf("SettingUpSpeakerFailure - %+v\n", err)
 		panic(err)
@@ -96,13 +96,12 @@ func main() {
 			displayList:    &layout.List{Axis: layout.Vertical},
 			songs:          s,
 			window:         w,
-			SelectedSongId: 1,
-			NextSongId:     2,
+			SelectedSongIndex: 0,
 		}
 		go a.songs.initSongs()
 
 		//Put an invalid song id on the playing queue to start with
-		playing <- 0
+		playing <- -1
 		a.SetUpSpeaker()
 
 		if err := a.draw(); err != nil {

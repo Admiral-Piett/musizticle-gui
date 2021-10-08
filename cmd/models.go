@@ -9,25 +9,24 @@ import (
 )
 
 // TODO - Explore other font collections
-//var th = material.NewTheme(gofont.Collection())
 var th = CreateTheme(gofont.Collection())
 
-// TODO - environmentalize
+// TODO - SECRETIFY - environmentalize
 var HOST = "http://localhost:9000/api"
 
 var playing = make(chan int, 1)
 var displayChange = make(chan bool)
 
+// TODO - SECRETIFY - environmentalize
 var NAV_QUEUE_PREVIOUS_LIMIT = 20
 var NAV_QUEUE_NEXT_LIMIT = 20
-var navQueuePrevious = make(chan int)
-var navQueueNext = make(chan int)
+var navQueuePrevious = []int{}
+var navQueueNext = []int{}
 
 type App struct {
 	displayList    *layout.List
 	songs          Songs
 	window         *app.Window
-	SelectedSongId int
 	SelectedSongIndex int
 	NextSongId     int
 	SampleRate     beep.SampleRate
