@@ -6,8 +6,6 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
-	"gioui.org/widget"
-	"gioui.org/widget/material"
 	"github.com/faiface/beep/speaker"
 	"log"
 	"os"
@@ -16,7 +14,6 @@ import (
 
 func (a *App) draw() error {
 	var ops op.Ops
-	var startButton widget.Clickable
 
 	for {
 		//log.Println("loop")
@@ -29,12 +26,25 @@ func (a *App) draw() error {
 			case system.FrameEvent:
 				gtx := layout.NewContext(&ops, e)
 
-				if startButton.Clicked() {
-					log.Println("I'm clicked")
-				}
 				if a.songs.reload.Clicked() {
 					log.Println("Reload clicked")
 					go a.songs.initSongs()
+				}
+				if a.play.Clicked() {
+					log.Println("Play clicked")
+					go a.clickSong()
+				}
+				if a.stop.Clicked() {
+					log.Println("Stop clicked")
+					go a.clickStop()
+				}
+				if a.next.Clicked() {
+					log.Println("Next clicked")
+					go a.clickNext()
+				}
+				if a.previous.Clicked() {
+					log.Println("Previous clicked")
+					go a.clickPrevious()
 				}
 				layout.Flex{
 					// Vertical alignment, from top to bottom
@@ -48,12 +58,9 @@ func (a *App) draw() error {
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return a.SongsList(gtx)
 					}),
-					layout.Rigid(
-						func(gtx layout.Context) layout.Dimensions {
-							btn := material.Button(th, &startButton, "Button me up")
-							return btn.Layout(gtx)
-						},
-					),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return a.MediaToolBar(gtx)
+					}),
 				)
 				e.Frame(gtx.Ops)
 			}
@@ -86,16 +93,16 @@ func main() {
 		w := app.NewWindow(app.Title("Media Gui"), app.Size(unit.Dp(1500), unit.Dp(900)))
 		s := Songs{}
 		a := App{
-			displayList: &layout.List{Axis: layout.Vertical},
-			songs:       s,
-			window:      w,
+			displayList:    &layout.List{Axis: layout.Vertical},
+			songs:          s,
+			window:         w,
 			SelectedSongId: 1,
-			NextSongId: 2,
+			NextSongId:     2,
 		}
 		go a.songs.initSongs()
 
 		//Put an invalid song id on the playing queue to start with
-		playing <-0
+		playing <- 0
 		a.SetUpSpeaker()
 
 		if err := a.draw(); err != nil {

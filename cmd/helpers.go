@@ -2,64 +2,98 @@ package main
 
 import (
 	"gioui.org/layout"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
+	"gioui.org/widget/material"
+	"golang.org/x/exp/shiny/materialdesign/icons"
 	"image/color"
 )
 
-func songLineWrapMarginsBorder(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
+
+// ----- Theme Stuff ------
+// Copied from widget.material.theme.NewTheme
+func rgb(c uint32) color.NRGBA {
+	return argb(0xff000000 | c)
+}
+
+func argb(c uint32) color.NRGBA {
+	return color.NRGBA{A: uint8(c >> 24), R: uint8(c >> 16), G: uint8(c >> 8), B: uint8(c)}
+}
+func mustIcon(ic *widget.Icon, err error) *widget.Icon {
+	if err != nil {
+		panic(err)
+	}
+	return ic
+}
+
+func CreateTheme(fontCollection []text.FontFace) *material.Theme {
+	t := &material.Theme{
+		Shaper: text.NewCache(fontCollection),
+	}
+	t.Palette = material.Palette{
+		Fg:         rgb(0x000000),
+		Bg:         rgb(0x000000),
+		ContrastBg: rgb(0x717EDD),
+		ContrastFg: rgb(0xffffff),
+	}
+	t.TextSize = unit.Sp(16)
+
+	t.Icon.CheckBoxChecked = mustIcon(widget.NewIcon(icons.ToggleCheckBox))
+	t.Icon.CheckBoxUnchecked = mustIcon(widget.NewIcon(icons.ToggleCheckBoxOutlineBlank))
+	t.Icon.RadioChecked = mustIcon(widget.NewIcon(icons.ToggleRadioButtonChecked))
+	t.Icon.RadioUnchecked = mustIcon(widget.NewIcon(icons.ToggleRadioButtonUnchecked))
+
+	// 38dp is on the lower end of possible finger size.
+	t.FingerSize = unit.Dp(38)
+
+	return t
+}
+
+// -------- End Theme -----------
+
+
+func EmptyNavQueue(queue chan int, limit int) {
+	for len(queue) > limit {
+		<- queue
+	}
+}
+
+// --------- Styling --------------
+func songLineMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
 	margins := layout.Inset{
-		Top:    unit.Dp(1),
+		Top:    unit.Dp(2),
 		Right:  unit.Dp(1),
-		Bottom: unit.Dp(1),
+		Bottom: unit.Dp(3),
 		Left:   unit.Dp(1),
 	}
-	border := widget.Border{
-		Color:        color.NRGBA{R: 204, G: 204, B: 204, A: 255},
-		CornerRadius: unit.Dp(3),
-		Width:        unit.Dp(2),
-	}
 	return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return d
-		})
+		return d
 	})
 }
 
-func songFieldsMarginsBorder(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
+func songFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
 	margins := layout.Inset{
 		Top:    unit.Dp(0.5),
-		Right:  unit.Dp(0),
+		Right:  unit.Dp(3),
 		Bottom: unit.Dp(0.5),
-		Left:   unit.Dp(0),
-	}
-	border := widget.Border{
-		Color:        color.NRGBA{R: 192, G: 192, B: 192, A: 200},
-		CornerRadius: unit.Dp(0),
-		Width:        unit.Dp(1),
+		Left:   unit.Dp(3),
 	}
 	return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return d
-		})
+		return d
 	})
 }
 
-func headerFieldsMarginsBorder(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
+func headerFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
 	margins := layout.Inset{
 		Top:    unit.Dp(5),
 		Right:  unit.Dp(0),
 		Bottom: unit.Dp(10),
 		Left:   unit.Dp(0),
 	}
-	border := widget.Border{
-		Color:        color.NRGBA{R: 192, G: 192, B: 192, A: 200},
-		CornerRadius: unit.Dp(0),
-		Width:        unit.Dp(1),
-	}
 	return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return d
-		})
+		return d
 	})
 }
+
+
