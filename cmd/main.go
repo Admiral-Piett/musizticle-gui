@@ -65,13 +65,13 @@ func (a *App) draw() error {
 					//a.window.Invalidate()
 				}
 				if a.selectedTab == NEXT_TAB {
-					if len(navQueueNext) == 0 {
+					if len(a.navQueueNext) == 0 {
 						outerLayoutWrapper(gtx, a.homeTabDisplay)
 					} else {
 						outerLayoutWrapper(gtx, a.nextTabDisplay)
 					}
 				} else if a.selectedTab == PREVIOUS_TAB {
-					if len(navQueuePrevious) == 0 {
+					if len(a.navQueuePrevious) == 0 {
 						outerLayoutWrapper(gtx, a.homeTabDisplay)
 					} else {
 						outerLayoutWrapper(gtx, a.previousTabDisplay)

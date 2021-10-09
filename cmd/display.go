@@ -27,7 +27,7 @@ func (a *App) homeTabDisplay() []layout.FlexChild {
 func (a *App) nextTabDisplay() []layout.FlexChild {
 	// Populate this list with the songs currently in the navQueueNext
 	songsList := []Song{}
-	for _, index := range navQueueNext {
+	for _, index := range a.navQueueNext {
 		songsList = append(songsList, a.songs.songList[index])
 	}
 	displayArray := []layout.FlexChild{
@@ -50,7 +50,7 @@ func (a *App) nextTabDisplay() []layout.FlexChild {
 func (a *App) previousTabDisplay() []layout.FlexChild {
 	// Populate this list with the songs currently in the navQueueNext
 	songsList := []Song{}
-	for _, index := range navQueuePrevious {
+	for _, index := range a.navQueuePrevious {
 		songsList = append(songsList, a.songs.songList[index])
 	}
 	displayArray := []layout.FlexChild{

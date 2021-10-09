@@ -20,8 +20,8 @@ var displayChange = make(chan bool)
 // TODO - SECRETIFY - environmentalize
 var NAV_QUEUE_PREVIOUS_LIMIT = 20
 var NAV_QUEUE_NEXT_LIMIT = 20
-var navQueuePrevious = []int{}
-var navQueueNext = []int{}
+//var navQueuePrevious = []int{}
+//var navQueueNext = []int{}
 
 var HOME_TAB = "home"
 var NEXT_TAB = "next"
@@ -37,6 +37,8 @@ type App struct {
 	SampleRate        beep.SampleRate
 	// --- Song Execution
 	SelectedSongIndex int
+	navQueuePrevious []int
+	navQueueNext []int
 	//NextSongId        int
 	play              widget.Clickable
 	stop              widget.Clickable
