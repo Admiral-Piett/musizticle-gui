@@ -10,6 +10,19 @@ import (
 	"image/color"
 )
 
+// ----- Window Stuff -----
+func outerLayoutWrapper(gtx layout.Context, f func() []layout.FlexChild) layout.Dimensions {
+	l := layout.Flex{
+		// Vertical alignment, from top to bottom
+		Axis: layout.Vertical,
+		// Empty space is left at the start, i.e. at the top
+		Spacing: layout.SpaceStart,
+	}.Layout(gtx,
+		f()...
+	)
+	return l
+}
+
 
 // ----- Theme Stuff ------
 // Copied from widget.material.theme.NewTheme
@@ -53,12 +66,6 @@ func CreateTheme(fontCollection []text.FontFace) *material.Theme {
 // -------- End Theme -----------
 
 
-func EmptyNavQueue(queue chan int, limit int) {
-	for len(queue) > limit {
-		<- queue
-	}
-}
-
 // --------- Styling --------------
 func songLineMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
 	margins := layout.Inset{
@@ -85,6 +92,18 @@ func songFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimension
 }
 
 func headerFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
+	margins := layout.Inset{
+		Top:    unit.Dp(5),
+		Right:  unit.Dp(0),
+		Bottom: unit.Dp(10),
+		Left:   unit.Dp(0),
+	}
+	return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return d
+	})
+}
+
+func tabsFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
 	margins := layout.Inset{
 		Top:    unit.Dp(5),
 		Right:  unit.Dp(0),

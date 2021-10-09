@@ -15,6 +15,48 @@ import (
 	"strconv"
 )
 
+
+func (a *App) TabsBar(gtx layout.Context) layout.Dimensions {
+	margins := layout.Inset{
+		Top:    unit.Dp(5),
+		Right:  unit.Dp(2),
+		Bottom: unit.Dp(5),
+		Left:   unit.Dp(2),
+	}
+
+	weightMap := make(map[string]float32)
+	for _, tab := range TAB_LIST {
+		weightMap[tab] = 0.2
+		if a.selectedTab == tab {
+			weightMap[tab] = 1
+		}
+	}
+
+	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+		layout.Rigid(
+			layout.Spacer{Width: unit.Dp(10)}.Layout,
+		),
+		layout.Flexed(weightMap[HOME_TAB], func(gtx layout.Context) layout.Dimensions {
+			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return material.Button(th, &a.homeTab, "Home").Layout(gtx)
+			})
+		}),
+		layout.Flexed(weightMap[NEXT_TAB], func(gtx layout.Context) layout.Dimensions {
+			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return material.Button(th, &a.nextTab, "Up Next").Layout(gtx)
+			})
+		}),
+		layout.Flexed(weightMap[PREVIOUS_TAB], func(gtx layout.Context) layout.Dimensions {
+			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return material.Button(th, &a.previousTab, "Recently Played").Layout(gtx)
+			})
+		}),
+		layout.Rigid(
+			layout.Spacer{Width: unit.Dp(10)}.Layout,
+		),
+	)
+}
+
 //TODO:
 // 	 To change song groupings - playlists, orders, albums, artists, etc.  We should call the backend and update the
 //  	song list to match.
@@ -40,6 +82,8 @@ func (a *App) getSong(songId int) (beep.StreamSeekCloser, beep.Format, error) {
 	return streamer, format, err
 }
 
+//FIXME - HERE - Instead of managing these all manually, could I maintain a list of indexes on the entire songsList, and
+// index pieces of it to populate these?
 func (a *App) UpdateNavQueues() {
 	//Every time we come through here, if we don't have room for another song, we slice the array at a placement of
 	//one less than the limit from the front of the array.  Meaning if the limit is 20, we get the last 19 to be added.
@@ -188,7 +232,7 @@ func (a *App) clickSong(index int) {
 
 
 
-func (a *App) SongsList(gtx layout.Context) layout.Dimensions {
+func (a *App) SongsList(gtx layout.Context, songsList []Song) layout.Dimensions {
 	if !a.songs.populated {
 		if !a.songs.initSongsInProgress {
 			return material.Button(th, &a.songs.reload, "Retry").Layout(gtx)
@@ -196,8 +240,8 @@ func (a *App) SongsList(gtx layout.Context) layout.Dimensions {
 		return material.Button(th, &a.songs.loadingButton, "Loading... Click me if I take too long").Layout(gtx)
 	}
 
-	listDimensions := a.displayList.Layout(gtx, len(a.songs.songList), func(gtx layout.Context, index int) layout.Dimensions {
-		song := &a.songs.songList[index]
+	listDimensions := a.displayList.Layout(gtx, len(songsList), func(gtx layout.Context, index int) layout.Dimensions {
+		song := &songsList[index]
 		if song.line.Clicked() {
 			a.clickSong(index)
 		}
@@ -247,6 +291,40 @@ func (a *App) MediaToolBar(gtx layout.Context) layout.Dimensions {
 	)
 }
 
+//TODO - figure out something more elegant than this for the borders and margins
+// I'm going to need to wrap all kinds of stuff in borders/margins, and I'll need something more elegant
+// FIXME - think about reworking the grid at at some point, they're evenly spaced but also look a little wonky.
+func (a *App) SongsHeader(gtx layout.Context) layout.Dimensions {
+	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+		layout.Rigid(
+			layout.Spacer{Width: unit.Dp(10)}.Layout,
+		),
+		layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
+			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "ID").Layout(gtx))
+		}),
+		layout.Flexed(1,
+			func(gtx layout.Context) layout.Dimensions {
+				return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Title").Layout(gtx))
+			},
+		),
+		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
+			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Artist").Layout(gtx))
+		}),
+		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
+			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Album").Layout(gtx))
+		}),
+		layout.Flexed(0.15, func(gtx layout.Context) layout.Dimensions {
+			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Track Number").Layout(gtx))
+		}),
+		layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
+			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Play Count").Layout(gtx))
+		}),
+		layout.Rigid(
+			layout.Spacer{Width: unit.Dp(10)}.Layout,
+		),
+	)
+}
+
 func (s *Songs) initSongs() {
 	if s.initSongsInProgress || s.populated {
 		return
@@ -266,6 +344,11 @@ func (s *Songs) initSongs() {
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	json.Unmarshal(body, &s.songList)
+	go func() {
+		for index, _ := range s.songList {
+			s.songIndexes = append(s.songIndexes, index)
+		}
+	}()
 	s.populated = true
 	log.Println("getSongsComplete")
 }
@@ -301,38 +384,4 @@ func buildSongLine(gtx layout.Context, s *Song) layout.Dimensions {
 		),
 	)
 	return lineDimenstions
-}
-
-//TODO - figure out something more elegant than this for the borders and margins
-// I'm going to need to wrap all kinds of stuff in borders/margins, and I'll need something more elegant
-// FIXME - think about reworking the grid at at some point, they're evenly spaced but also look a little wonky.
-func SongsHeader(gtx layout.Context) layout.Dimensions {
-	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-		layout.Rigid(
-			layout.Spacer{Width: unit.Dp(10)}.Layout,
-		),
-		layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "ID").Layout(gtx))
-		}),
-		layout.Flexed(1,
-			func(gtx layout.Context) layout.Dimensions {
-				return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Title").Layout(gtx))
-			},
-		),
-		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Artist").Layout(gtx))
-		}),
-		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Album").Layout(gtx))
-		}),
-		layout.Flexed(0.15, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Track Number").Layout(gtx))
-		}),
-		layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Play Count").Layout(gtx))
-		}),
-		layout.Rigid(
-			layout.Spacer{Width: unit.Dp(10)}.Layout,
-		),
-	)
 }

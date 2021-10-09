@@ -46,22 +46,39 @@ func (a *App) draw() error {
 					log.Println("Previous clicked")
 					go a.clickPrevious()
 				}
-				layout.Flex{
-					// Vertical alignment, from top to bottom
-					Axis: layout.Vertical,
-					// Empty space is left at the start, i.e. at the top
-					Spacing: layout.SpaceStart,
-				}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return SongsHeader(gtx)
-					}),
-					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return a.SongsList(gtx)
-					}),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return a.MediaToolBar(gtx)
-					}),
-				)
+				if a.homeTab.Clicked() {
+					log.Println("Home Tab clicked")
+					a.selectedTab = HOME_TAB
+					op.InvalidateOp{}.Add(gtx.Ops)
+					//a.window.Invalidate()
+				}
+				if a.nextTab.Clicked() {
+					log.Println("Next Tab clicked")
+					a.selectedTab = NEXT_TAB
+					op.InvalidateOp{}.Add(gtx.Ops)
+					//a.window.Invalidate()
+				}
+				if a.previousTab.Clicked() {
+					log.Println("Previous Tab clicked")
+					a.selectedTab = PREVIOUS_TAB
+					op.InvalidateOp{}.Add(gtx.Ops)
+					//a.window.Invalidate()
+				}
+				if a.selectedTab == NEXT_TAB {
+					if len(navQueueNext) == 0 {
+						outerLayoutWrapper(gtx, a.homeTabDisplay)
+					} else {
+						outerLayoutWrapper(gtx, a.nextTabDisplay)
+					}
+				} else if a.selectedTab == PREVIOUS_TAB {
+					if len(navQueuePrevious) == 0 {
+						outerLayoutWrapper(gtx, a.homeTabDisplay)
+					} else {
+						outerLayoutWrapper(gtx, a.previousTabDisplay)
+					}
+				} else {
+					outerLayoutWrapper(gtx, a.homeTabDisplay)
+				}
 				e.Frame(gtx.Ops)
 			}
 		}
@@ -93,10 +110,11 @@ func main() {
 		w := app.NewWindow(app.Title("Media Gui"), app.Size(unit.Dp(1500), unit.Dp(900)))
 		s := Songs{}
 		a := App{
-			displayList:    &layout.List{Axis: layout.Vertical},
-			songs:          s,
-			window:         w,
+			displayList:       &layout.List{Axis: layout.Vertical},
+			songs:             s,
+			window:            w,
 			SelectedSongIndex: 0,
+			selectedTab:       HOME_TAB,
 		}
 		go a.songs.initSongs()
 

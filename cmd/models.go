@@ -23,21 +23,35 @@ var NAV_QUEUE_NEXT_LIMIT = 20
 var navQueuePrevious = []int{}
 var navQueueNext = []int{}
 
+var HOME_TAB = "home"
+var NEXT_TAB = "next"
+var PREVIOUS_TAB = "previous"
+var TAB_LIST = []string{HOME_TAB, NEXT_TAB, PREVIOUS_TAB}
+
 type App struct {
-	displayList    *layout.List
-	songs          Songs
-	window         *app.Window
+	// --- Display
+	displayList       *layout.List
+	songs             Songs
+	window            *app.Window
+	// Speaker Execution
+	SampleRate        beep.SampleRate
+	// --- Song Execution
 	SelectedSongIndex int
-	NextSongId     int
-	SampleRate     beep.SampleRate
-	play           widget.Clickable
-	stop           widget.Clickable
-	next           widget.Clickable
-	previous       widget.Clickable
+	//NextSongId        int
+	play              widget.Clickable
+	stop              widget.Clickable
+	next              widget.Clickable
+	previous          widget.Clickable
+	// --- Tabs
+	selectedTab		  string
+	homeTab           widget.Clickable
+	nextTab           widget.Clickable
+	previousTab       widget.Clickable
 }
 
 type Songs struct {
 	songList            []Song
+	songIndexes			[]int
 	selected            int
 	populated           bool
 	initSongsInProgress bool
