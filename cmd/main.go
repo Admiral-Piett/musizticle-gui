@@ -28,7 +28,7 @@ func (a *App) draw() error {
 
 				if a.songs.reload.Clicked() {
 					log.Println("Reload clicked")
-					go a.songs.initSongs()
+					go a.initSongs()
 				}
 				if a.play.Clicked() {
 					log.Println("Play clicked")
@@ -113,10 +113,10 @@ func main() {
 			displayList:       &layout.List{Axis: layout.Vertical},
 			songs:             s,
 			window:            w,
-			SelectedSongIndex: 0,
+			selectedSongIndex: 0,
 			selectedTab:       HOME_TAB,
 		}
-		go a.songs.initSongs()
+		go a.initSongs()
 
 		//Put an invalid song id on the playing queue to start with
 		playing <- -1

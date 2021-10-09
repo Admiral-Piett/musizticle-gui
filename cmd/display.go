@@ -15,7 +15,7 @@ func (a *App) homeTabDisplay() []layout.FlexChild {
 			return a.SongsHeader(gtx)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			return a.SongsList(gtx, a.songs.songList)
+			return a.SongsList(gtx, a.songList)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return a.MediaToolBar(gtx)
@@ -28,7 +28,7 @@ func (a *App) nextTabDisplay() []layout.FlexChild {
 	// Populate this list with the songs currently in the navQueueNext
 	songsList := []Song{}
 	for _, index := range a.navQueueNext {
-		songsList = append(songsList, a.songs.songList[index])
+		songsList = append(songsList, a.songList[index])
 	}
 	displayArray := []layout.FlexChild{
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -51,7 +51,7 @@ func (a *App) previousTabDisplay() []layout.FlexChild {
 	// Populate this list with the songs currently in the navQueueNext
 	songsList := []Song{}
 	for _, index := range a.navQueuePrevious {
-		songsList = append(songsList, a.songs.songList[index])
+		songsList = append(songsList, a.songList[index])
 	}
 	displayArray := []layout.FlexChild{
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
