@@ -41,6 +41,8 @@ func (a *App) getSong(songId int) (beep.StreamSeekCloser, beep.Format, error) {
 }
 
 func (a *App) UpdateNavQueues() {
+	//Every time we come through here, if we don't have room for another song, we slice the array at a placement of
+	//one less than the limit from the front of the array.  Meaning if the limit is 20, we get the last 19 to be added.
 	if len(navQueuePrevious) >= (NAV_QUEUE_PREVIOUS_LIMIT) {
 		index := len(navQueuePrevious) - (NAV_QUEUE_PREVIOUS_LIMIT - 1)
 		// Take all the things in the back of the list from the limit so that we leave room to add the new one.
@@ -53,10 +55,34 @@ func (a *App) UpdateNavQueues() {
 
 	navQueuePrevious = append(navQueuePrevious, a.SelectedSongIndex)
 
+	a.populateNavQueues()
+	log.Printf("navQueueNext - %+v", navQueueNext)
+	log.Printf("navQueuePrevious - %+v", navQueuePrevious)
+	return
+}
+
+func (a *App) populateNavQueues() {
+	// This is to pre-populate the navQueuePrevious index, if we're starting fresh or it gets wiped on a new song list.
+	// TODO - make sure to wipe this on a new songList population?
+	currentIndex := a.SelectedSongIndex
+	if len(navQueuePrevious) != 0 {
+		index := len(navQueuePrevious) - 1
+		currentIndex = navQueuePrevious[index]
+	}
+	for len(navQueuePrevious) < NAV_QUEUE_NEXT_LIMIT {
+		// If we're about to index passed the end of the songList, then reset to start at the back of the song list
+		// to start over at the last index (we subtract 1 before adding which should make up for the 0 index diff)
+		if (currentIndex - 1) < 0 {
+			currentIndex = len(a.songs.songList)
+		}
+		previousIndex := currentIndex - 1
+		navQueuePrevious = append([]int{previousIndex}, navQueuePrevious...)
+		currentIndex--
+	}
 	//All this is to pre-populate the navQueueNext with the next batch of songs to play, either based on the current
 	//index if we don't have a previous list, or append to the previous list with the songs that follow it in the
 	//current song list.
-	currentIndex := a.SelectedSongIndex
+	currentIndex = a.SelectedSongIndex
 	if len(navQueueNext) != 0 {
 		index := len(navQueueNext) - 1
 		currentIndex = navQueueNext[index]
@@ -70,7 +96,6 @@ func (a *App) UpdateNavQueues() {
 		navQueueNext = append(navQueueNext, nextIndex)
 		currentIndex++
 	}
-	return
 }
 
 func (a *App) playSong() {
@@ -118,14 +143,39 @@ func (a *App) clickStop() {
 	speaker.Clear()
 }
 
-//TODO - NEXT - make these work with the navQueueNext & navQueuePrevious
-//TODO - NEXT - also make tabs for viewing "Up Next" & "Recently Played"
 func (a *App) clickNext() {
-
+	if len(navQueueNext) == 0 {
+		log.Println("Nothing in next (wtf are you doing?) - skipping")
+		return
+	}
+	// QUESTION - should I have navQueuePrevious preform like this too?
+	// I don't have to pop this off the queue here, because UpdateNavQueues handles this queue's values automatically.
+	a.SelectedSongIndex = navQueueNext[0]
+	a.playSong()
 }
 
 func (a *App) clickPrevious() {
+	// FIXME - should we just start from the back of the current songList?  If so, how would we populate the previous
+	//  list so that it preforms like the navQueueNext?
+	//If we don't have any previous songs, just return
+	if len(navQueuePrevious) == 0 {
+		log.Println("Nothing previously played - skipping")
+		return
+	}
+	// Get the last song off the back of this queue and strip it off since that should be what's currently playing (we
+	//populate the queues before actually executing the song in case you cut it off halfway through), so that we can
+	//click previous more than once and actually move through the queue.
+	currentSongIndex := len(navQueuePrevious) - 1
+	navQueuePrevious = navQueuePrevious[:currentSongIndex]
+	// FIXME - this is too tedious for every click - upgrade with a little more book keeping for performance down
+	//  the road.
+	// Reset this here because this will get populated completely from where we are currently as the song plays
+	navQueueNext = []int{}
 
+	previousSongIndex := len(navQueuePrevious) - 1
+	a.SelectedSongIndex = navQueuePrevious[previousSongIndex]
+	navQueuePrevious = navQueuePrevious[:previousSongIndex]
+	a.playSong()
 }
 
 func (a *App) clickSong(index int) {
