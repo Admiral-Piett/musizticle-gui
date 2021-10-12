@@ -32,7 +32,7 @@ func (a *App) draw() error {
 				}
 				if a.play.Clicked() {
 					log.Println("Play clicked")
-					go a.playSong()
+					a.clickPlay()
 				}
 				if a.stop.Clicked() {
 					log.Println("Stop clicked")

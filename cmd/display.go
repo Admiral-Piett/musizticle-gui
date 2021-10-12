@@ -88,7 +88,7 @@ func (a *App) MediaToolBar(gtx layout.Context) layout.Dimensions {
 			// TODO - make these icons
 			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				text := "Play"
-				if a.paused {
+				if a.speakerControl != nil && !a.speakerControl.Paused {
 					text = "Pause"
 				}
 				return material.Button(th, &a.play, text).Layout(gtx)

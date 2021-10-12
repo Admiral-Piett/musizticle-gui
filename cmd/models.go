@@ -33,15 +33,17 @@ type App struct {
 	window      *app.Window
 	// Speaker Execution
 	SampleRate beep.SampleRate
+	speakerControl *beep.Ctrl
 	// --- Song Execution
-	songList              []*Song
-	selectedSong          *Song
-	navQueueNextSongs     []*Song
-	navQueuePreviousSongs []*Song
-	play                  widget.Clickable
-	stop                  widget.Clickable
-	next                  widget.Clickable
-	previous              widget.Clickable
+	songList         []*Song
+	selectedSong     *Song
+	navQueueNext     []*Song
+	navQueuePrevious []*Song
+	play             widget.Clickable
+	stop             widget.Clickable
+	next             widget.Clickable
+	previous widget.Clickable
+	paused   bool
 	// --- Tabs
 	selectedTab string
 	homeTab     widget.Clickable

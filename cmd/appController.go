@@ -79,48 +79,6 @@ func (a *App) populateNextNavQueue() {
 	}
 }
 
-
-func (a *App) playSong() {
-	if a.selectedSong == nil {
-		a.selectedSong = a.songList[0]
-	}
-	currentSongId := <-playing
-	songId := a.selectedSong.Id
-	songName := a.selectedSong.Name
-
-	if currentSongId == songId {
-		playing <- currentSongId
-		log.Printf("CurrentSongAlreadyPlaying - Index: %d, Id: %d, Name: %s", a.selectedSong.songListIndex, songId, songName)
-	} else {
-		playing <- songId
-		go func() {
-			log.Printf("PlayingSong - Index: %d, Id: %d, Name: %s", a.selectedSong.songListIndex, songId, songName)
-			streamer, format, err := a.getSong(songId)
-			if err != nil {
-				log.Printf("ClickSongFailure - %+v", err)
-				return
-			}
-			defer streamer.Close()
-
-			go a.UpdateNavQueues()
-
-			resampled := beep.Resample(4, a.SampleRate, format.SampleRate, streamer)
-			//Clear any existing songs that might be going on
-			speaker.Clear()
-			//Create this to make the app wait for this song to finish before the callback fires
-			done := make(chan bool)
-			speaker.Play(beep.Seq(resampled, beep.Callback(func() {
-				// TODO - Set up shuffle, and better song list navigation (can't just increment the song id)
-				//	TODO - set up a channel to handle queue waiting & and reverse for recently played
-				a.selectedSong = a.navQueueNextSongs[0]
-				done <- true
-				go a.playSong()
-			})))
-			<-done
-		}()
-	}
-}
-
 func (a *App) clickStop() {
 	log.Println("StoppingCurrentSong")
 	<-playing
@@ -163,15 +121,17 @@ func (a *App) clickPrevious() {
 	a.playSong()
 }
 
+//TODO - NEXT - I think I need something like this here - https://github.com/pfortin-urbn/stalk/blob/master/collectors/aws/aws_collector.go#L106-L125
+//  Otherwise I can only pause/unpause once.  I need this to govern it's own status and manage the state of play
+// to prevent leaving a ton of gorountines going by mistake.
 func (a *App) clickPlay() {
-	if a.paused {
-		log.Println("Unpause me")
-		a.paused = false
-		a.playSong()
+	if a.speakerControl == nil || a.speakerControl.Paused {
+		log.Println("Playing me")
+		go a.playSong()
 	} else {
-		a.paused = true
+		log.Println("Pausing me")
 		speaker.Lock()
-		a.speakerControl.Paused = a.paused
+		a.speakerControl.Paused = true
 		speaker.Unlock()
 	}
 }
@@ -183,6 +143,61 @@ func (a *App) clickSong(song *Song) {
 	a.navQueueNext = []*Song{}
 	a.playSong()
 }
+
+func (a *App) playSong() {
+	if a.selectedSong == nil {
+		a.selectedSong = a.songList[0]
+	}
+	currentSongId := <-playing
+	songId := a.selectedSong.Id
+	songName := a.selectedSong.Name
+
+	// All this checking for nil business is in case we haven't up up the control yet - AKA this is our first song to play.
+	if a.speakerControl != nil && a.speakerControl.Paused {
+		speaker.Lock()
+		a.speakerControl.Paused = false
+		speaker.Unlock()
+		return
+	}
+
+	if currentSongId == songId {
+		playing <- currentSongId
+		log.Printf("CurrentSongAlreadyPlaying - Index: %d, Id: %d, Name: %s", a.selectedSong.songListIndex, songId, songName)
+		return
+	}
+
+	playing <- songId
+	go func() {
+		log.Printf("PlayingSong - Index: %d, Id: %d, Name: %s", a.selectedSong.songListIndex, songId, songName)
+		streamer, _, err := a.getSong(songId)
+		if err != nil {
+			log.Printf("ClickSongFailure - %+v", err)
+			return
+		}
+		defer streamer.Close()
+
+		go a.UpdateNavQueues()
+
+		//resampled := beep.Resample(4, a.SampleRate, format.SampleRate, streamer)
+		//Clear any existing songs that might be going on
+		speaker.Clear()
+		//Create this to make the app wait for this song to finish before the callback fires
+		//done := make(chan bool)
+		//streamer := beep.Seq(resampled, beep.Callback(func() {
+		//	// TODO - Set up shuffle, and better song list navigation (can't just increment the song id)
+		//	//	TODO - set up a channel to handle queue waiting & and reverse for recently played
+		//	a.selectedSong = a.navQueueNext[0]
+		//	done <- true
+		//	a.paused = true
+		//	go a.playSong()
+		//}))
+		a.speakerControl = &beep.Ctrl{Streamer: streamer, Paused: false}
+		done := make(chan bool)
+		speaker.Play(a.speakerControl)
+		<- done
+	}()
+}
+
 
 func (a *App) SongsList(gtx layout.Context, songsList []*Song) layout.Dimensions {
 	if !a.songs.populated {
