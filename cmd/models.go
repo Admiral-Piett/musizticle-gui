@@ -34,7 +34,7 @@ type App struct {
 	// Speaker Execution
 	SampleRate        beep.SampleRate
 	// --- Song Execution
-	songList []Song
+	songList []*Song
 	selectedSongIndex int
 	navQueuePrevious  []int
 	navQueueNext []int

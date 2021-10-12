@@ -108,25 +108,25 @@ func (a *App) UpdateNavQueues() {
 func (a *App) populateNavQueues() {
 	// This is to pre-populate the navQueuePrevious index, if we're starting fresh or it gets wiped on a new song list.
 	// TODO - make sure to wipe this on a new songList population?
-	currentIndex := a.selectedSongIndex
-	if len(a.navQueuePrevious) != 0 {
-		index := len(a.navQueuePrevious) - 1
-		currentIndex = a.navQueuePrevious[index]
-	}
-	for len(a.navQueuePrevious) < NAV_QUEUE_NEXT_LIMIT {
-		// If we're about to index passed the end of the songList, then reset to start at the back of the song list
-		// to start over at the last index (we subtract 1 before adding which should make up for the 0 index diff)
-		if (currentIndex - 1) < 0 {
-			currentIndex = len(a.songList)
-		}
-		previousIndex := currentIndex - 1
-		a.navQueuePrevious = append([]int{previousIndex}, a.navQueuePrevious...)
-		currentIndex--
-	}
+	//currentIndex := a.selectedSongIndex
+	//if len(a.navQueuePrevious) != 0 {
+	//	index := len(a.navQueuePrevious) - 1
+	//	currentIndex = a.navQueuePrevious[index]
+	//}
+	//for len(a.navQueuePrevious) < NAV_QUEUE_NEXT_LIMIT {
+	//	// If we're about to index passed the end of the songList, then reset to start at the back of the song list
+	//	// to start over at the last index (we subtract 1 before adding which should make up for the 0 index diff)
+	//	if (currentIndex - 1) < 0 {
+	//		currentIndex = len(a.songList)
+	//	}
+	//	previousIndex := currentIndex - 1
+	//	a.navQueuePrevious = append([]int{previousIndex}, a.navQueuePrevious...)
+	//	currentIndex--
+	//}
 	//All this is to pre-populate the navQueueNext with the next batch of songs to play, either based on the current
 	//index if we don't have a previous list, or append to the previous list with the songs that follow it in the
 	//current song list.
-	currentIndex = a.selectedSongIndex
+	currentIndex := a.selectedSongIndex
 	if len(a.navQueueNext) != 0 {
 		index := len(a.navQueueNext) - 1
 		currentIndex = a.navQueueNext[index]
@@ -232,7 +232,7 @@ func (a *App) clickSong(index int) {
 
 
 
-func (a *App) SongsList(gtx layout.Context, songsList []Song) layout.Dimensions {
+func (a *App) SongsList(gtx layout.Context, songsList []*Song) layout.Dimensions {
 	if !a.songs.populated {
 		if !a.songs.initSongsInProgress {
 			return material.Button(th, &a.songs.reload, "Retry").Layout(gtx)
@@ -241,7 +241,7 @@ func (a *App) SongsList(gtx layout.Context, songsList []Song) layout.Dimensions 
 	}
 
 	listDimensions := a.displayList.Layout(gtx, len(songsList), func(gtx layout.Context, index int) layout.Dimensions {
-		song := &songsList[index]
+		song := songsList[index]
 		if song.line.Clicked() {
 			a.clickSong(index)
 		}
