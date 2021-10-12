@@ -65,13 +65,13 @@ func (a *App) draw() error {
 					//a.window.Invalidate()
 				}
 				if a.selectedTab == NEXT_TAB {
-					if len(a.navQueueNext) == 0 {
+					if len(a.navQueueNextSongs) == 0 {
 						outerLayoutWrapper(gtx, a.homeTabDisplay)
 					} else {
 						outerLayoutWrapper(gtx, a.nextTabDisplay)
 					}
 				} else if a.selectedTab == PREVIOUS_TAB {
-					if len(a.navQueuePrevious) == 0 {
+					if len(a.navQueuePreviousSongs) == 0 {
 						outerLayoutWrapper(gtx, a.homeTabDisplay)
 					} else {
 						outerLayoutWrapper(gtx, a.previousTabDisplay)
@@ -113,7 +113,6 @@ func main() {
 			displayList:       &layout.List{Axis: layout.Vertical},
 			songs:             s,
 			window:            w,
-			selectedSongIndex: 0,
 			selectedTab:       HOME_TAB,
 		}
 		go a.initSongs()

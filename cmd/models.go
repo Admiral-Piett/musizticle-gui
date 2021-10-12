@@ -28,32 +28,28 @@ var TAB_LIST = []string{HOME_TAB, NEXT_TAB, PREVIOUS_TAB}
 
 type App struct {
 	// --- Display
-	displayList       *layout.List
-	songs             Songs
-	window            *app.Window
+	displayList *layout.List
+	songs       Songs
+	window      *app.Window
 	// Speaker Execution
-	SampleRate        beep.SampleRate
+	SampleRate beep.SampleRate
 	// --- Song Execution
-	songList []*Song
-	selectedSongIndex int
-	navQueuePrevious  []int
-	navQueueNext []int
-	navQueueNextSongs []Song
-	navQueuePreviousSongs []Song
-	play              widget.Clickable
-	stop              widget.Clickable
-	next              widget.Clickable
-	previous          widget.Clickable
+	songList              []*Song
+	selectedSong          *Song
+	navQueueNextSongs     []*Song
+	navQueuePreviousSongs []*Song
+	play                  widget.Clickable
+	stop                  widget.Clickable
+	next                  widget.Clickable
+	previous              widget.Clickable
 	// --- Tabs
-	selectedTab		  string
-	homeTab           widget.Clickable
-	nextTab           widget.Clickable
-	previousTab       widget.Clickable
+	selectedTab string
+	homeTab     widget.Clickable
+	nextTab     widget.Clickable
+	previousTab widget.Clickable
 }
 
 type Songs struct {
-	songIndexes			[]int
-	selected            int
 	populated           bool
 	initSongsInProgress bool
 	reload              widget.Clickable
@@ -61,8 +57,9 @@ type Songs struct {
 }
 
 type Song struct {
-	line widget.Clickable
-	Id   int
+	line          widget.Clickable
+	songListIndex int
+	Id            int
 	// TODO - rename to Title
 	Name           string
 	ArtistId       int

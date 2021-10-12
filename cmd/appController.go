@@ -87,73 +87,59 @@ func (a *App) getSong(songId int) (beep.StreamSeekCloser, beep.Format, error) {
 func (a *App) UpdateNavQueues() {
 	//Every time we come through here, if we don't have room for another song, we slice the array at a placement of
 	//one less than the limit from the front of the array.  Meaning if the limit is 20, we get the last 19 to be added.
-	if len(a.navQueuePrevious) >= (NAV_QUEUE_PREVIOUS_LIMIT) {
-		index := len(a.navQueuePrevious) - (NAV_QUEUE_PREVIOUS_LIMIT - 1)
+	if len(a.navQueuePreviousSongs) >= (NAV_QUEUE_PREVIOUS_LIMIT) {
+		index := len(a.navQueuePreviousSongs) - (NAV_QUEUE_PREVIOUS_LIMIT - 1)
 		// Take all the things in the back of the list from the limit so that we leave room to add the new one.
-		a.navQueuePrevious = a.navQueuePrevious[index:]
+		a.navQueuePreviousSongs = a.navQueuePreviousSongs[index:]
 	}
-	if len(a.navQueueNext) >= (NAV_QUEUE_NEXT_LIMIT) {
-		index := len(a.navQueueNext) - (NAV_QUEUE_NEXT_LIMIT - 1)
-		a.navQueueNext = a.navQueueNext[index:]
+	if len(a.navQueueNextSongs) >= (NAV_QUEUE_NEXT_LIMIT) {
+		index := len(a.navQueueNextSongs) - (NAV_QUEUE_NEXT_LIMIT - 1)
+		a.navQueueNextSongs = a.navQueueNextSongs[index:]
 	}
 
-	a.navQueuePrevious = append(a.navQueuePrevious, a.selectedSongIndex)
+	a.navQueuePreviousSongs = append(a.navQueuePreviousSongs, a.selectedSong)
 
 	a.populateNavQueues()
-	log.Printf("navQueueNext - %+v", a.navQueueNext)
-	log.Printf("navQueuePrevious - %+v", a.navQueuePrevious)
+	log.Printf("navQueueNextSongs - %+v", a.navQueueNextSongs)
+	log.Printf("navQueuePreviousSongs - %+v", a.navQueuePreviousSongs)
 	return
 }
 
 func (a *App) populateNavQueues() {
-	// This is to pre-populate the navQueuePrevious index, if we're starting fresh or it gets wiped on a new song list.
-	// TODO - make sure to wipe this on a new songList population?
-	//currentIndex := a.selectedSongIndex
-	//if len(a.navQueuePrevious) != 0 {
-	//	index := len(a.navQueuePrevious) - 1
-	//	currentIndex = a.navQueuePrevious[index]
-	//}
-	//for len(a.navQueuePrevious) < NAV_QUEUE_NEXT_LIMIT {
-	//	// If we're about to index passed the end of the songList, then reset to start at the back of the song list
-	//	// to start over at the last index (we subtract 1 before adding which should make up for the 0 index diff)
-	//	if (currentIndex - 1) < 0 {
-	//		currentIndex = len(a.songList)
-	//	}
-	//	previousIndex := currentIndex - 1
-	//	a.navQueuePrevious = append([]int{previousIndex}, a.navQueuePrevious...)
-	//	currentIndex--
-	//}
 	//All this is to pre-populate the navQueueNext with the next batch of songs to play, either based on the current
 	//index if we don't have a previous list, or append to the previous list with the songs that follow it in the
 	//current song list.
-	currentIndex := a.selectedSongIndex
-	if len(a.navQueueNext) != 0 {
-		index := len(a.navQueueNext) - 1
-		currentIndex = a.navQueueNext[index]
+	currentIndex := a.selectedSong.songListIndex
+	if len(a.navQueueNextSongs) != 0 {
+		currentIndex = len(a.navQueueNextSongs) - 1
 	}
-	for len(a.navQueueNext) < NAV_QUEUE_NEXT_LIMIT {
+	for len(a.navQueueNextSongs) < NAV_QUEUE_NEXT_LIMIT {
 		// If we're about to index passed the end of the songList, then reset to 0 and start over
-		if (currentIndex + 1) > len(a.songList) {
+		nextIndex := currentIndex + 1
+		if nextIndex > len(a.songList) {
 			currentIndex = 0
 		}
-		nextIndex := currentIndex + 1
-		a.navQueueNext = append(a.navQueueNext, nextIndex)
+		a.navQueueNextSongs = append(a.navQueueNextSongs, a.songList[nextIndex])
 		currentIndex++
 	}
 }
 
-func (a *App) playSong() {
-	currentSongId := <-playing
-	songId := a.songList[a.selectedSongIndex].Id
-	songName := a.songList[a.selectedSongIndex].Name
 
-	if currentSongId == a.selectedSongIndex {
+func (a *App) playSong() {
+	if a.selectedSong == nil {
+		a.selectedSong = a.songList[0]
+	}
+	currentSongId := <-playing
+	songId := a.selectedSong.Id
+	songName := a.selectedSong.Name
+
+	if currentSongId == songId {
 		playing <- currentSongId
-		log.Printf("CurrentSongAlreadyPlaying - Index: %d, Id: %d, Name: %s", a.selectedSongIndex, songId, songName)
+		log.Printf("CurrentSongAlreadyPlaying - Index: %d, Id: %d, Name: %s", a.selectedSong.songListIndex, songId, songName)
 	} else {
-		playing <- a.selectedSongIndex
+		playing <- songId
 		go func() {
-			log.Printf("PlayingSong - Index: %d, Id: %d, Name: %s", a.selectedSongIndex, songId, songName)
+			log.Printf("PlayingSong - Index: %d, Id: %d, Name: %s", a.selectedSong.songListIndex, songId, songName)
 			streamer, format, err := a.getSong(songId)
 			if err != nil {
 				log.Printf("ClickSongFailure - %+v", err)
@@ -171,7 +157,7 @@ func (a *App) playSong() {
 			speaker.Play(beep.Seq(resampled, beep.Callback(func() {
 				// TODO - Set up shuffle, and better song list navigation (can't just increment the song id)
 				//	TODO - set up a channel to handle queue waiting & and reverse for recently played
-				a.selectedSongIndex = a.navQueueNext[0]
+				a.selectedSong = a.navQueueNextSongs[0]
 				done <- true
 				go a.playSong()
 			})))
@@ -188,13 +174,13 @@ func (a *App) clickStop() {
 }
 
 func (a *App) clickNext() {
-	if len(a.navQueueNext) == 0 {
+	if len(a.navQueueNextSongs) == 0 {
 		log.Println("Nothing in next (wtf are you doing?) - skipping")
 		return
 	}
 	// QUESTION - should I have navQueuePrevious preform like this too?
 	// I don't have to pop this off the queue here, because UpdateNavQueues handles this queue's values automatically.
-	a.selectedSongIndex = a.navQueueNext[0]
+	a.selectedSong = a.navQueueNextSongs[0]
 	a.playSong()
 }
 
@@ -202,35 +188,33 @@ func (a *App) clickPrevious() {
 	// FIXME - should we just start from the back of the current songList?  If so, how would we populate the previous
 	//  list so that it preforms like the navQueueNext?
 	//If we don't have any previous songs, just return
-	if len(a.navQueuePrevious) == 0 {
+	if len(a.navQueuePreviousSongs) == 0 {
 		log.Println("Nothing previously played - skipping")
 		return
 	}
 	// Get the last song off the back of this queue and strip it off since that should be what's currently playing (we
 	//populate the queues before actually executing the song in case you cut it off halfway through), so that we can
 	//click previous more than once and actually move through the queue.
-	currentSongIndex := len(a.navQueuePrevious) - 1
-	a.navQueuePrevious = a.navQueuePrevious[:currentSongIndex]
+	currentSongIndex := len(a.navQueuePreviousSongs) - 1
+	a.navQueuePreviousSongs = a.navQueuePreviousSongs[:currentSongIndex]
 	// FIXME - this is too tedious for every click - upgrade with a little more book keeping for performance down
 	//  the road.
 	// Reset this here because this will get populated completely from where we are currently as the song plays
-	a.navQueueNext = []int{}
+	a.navQueueNextSongs = []*Song{}
 
-	previousSongIndex := len(a.navQueuePrevious) - 1
-	a.selectedSongIndex = a.navQueuePrevious[previousSongIndex]
-	a.navQueuePrevious = a.navQueuePrevious[:previousSongIndex]
+	previousSongIndex := len(a.navQueuePreviousSongs) - 1
+	a.selectedSong = a.navQueuePreviousSongs[previousSongIndex]
+	a.navQueuePreviousSongs = a.navQueuePreviousSongs[:previousSongIndex]
 	a.playSong()
 }
 
-func (a *App) clickSong(index int) {
-	a.selectedSongIndex = index
+func (a *App) clickSong(song *Song) {
+	a.selectedSong = song
 	// If we actually clicked on a new song, we can wipe the up next list because it's not relevant any more
 	//considering our new index/position.
-	a.navQueueNext = []int{}
+	a.navQueueNextSongs = []*Song{}
 	a.playSong()
 }
-
-
 
 func (a *App) SongsList(gtx layout.Context, songsList []*Song) layout.Dimensions {
 	if !a.songs.populated {
@@ -243,7 +227,7 @@ func (a *App) SongsList(gtx layout.Context, songsList []*Song) layout.Dimensions
 	listDimensions := a.displayList.Layout(gtx, len(songsList), func(gtx layout.Context, index int) layout.Dimensions {
 		song := songsList[index]
 		if song.line.Clicked() {
-			a.clickSong(index)
+			a.clickSong(song)
 		}
 
 		// Song line clickable, wrapping the line meta labels, etc., wrapped in margins and borders.
@@ -344,9 +328,10 @@ func (a *App) initSongs() {
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	json.Unmarshal(body, &a.songList)
+  	// Make the songs aware of where they are in the "master" songList
 	go func() {
-		for index, _ := range a.songList {
-			a.songs.songIndexes = append(a.songs.songIndexes, index)
+		for index, song := range a.songList {
+			 song.songListIndex = index
 		}
 	}()
 	a.songs.populated = true
