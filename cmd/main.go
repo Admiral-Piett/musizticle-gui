@@ -65,19 +65,19 @@ func (a *App) draw() error {
 					//a.window.Invalidate()
 				}
 				if a.selectedTab == NEXT_TAB {
-					if len(a.navQueueNextSongs) == 0 {
-						outerLayoutWrapper(gtx, a.homeTabDisplay)
+					if len(a.navQueueNext) == 0 {
+						outerSongListWrapper(gtx, a.tabDisplay, a.songList)
 					} else {
-						outerLayoutWrapper(gtx, a.nextTabDisplay)
+						outerSongListWrapper(gtx, a.tabDisplay, a.navQueueNext)
 					}
 				} else if a.selectedTab == PREVIOUS_TAB {
-					if len(a.navQueuePreviousSongs) == 0 {
-						outerLayoutWrapper(gtx, a.homeTabDisplay)
+					if len(a.navQueuePrevious) == 0 {
+						outerSongListWrapper(gtx, a.tabDisplay, a.songList)
 					} else {
-						outerLayoutWrapper(gtx, a.previousTabDisplay)
+						outerSongListWrapper(gtx, a.tabDisplay, a.navQueuePrevious)
 					}
 				} else {
-					outerLayoutWrapper(gtx, a.homeTabDisplay)
+					outerSongListWrapper(gtx, a.tabDisplay, a.songList)
 				}
 				e.Frame(gtx.Ops)
 			}

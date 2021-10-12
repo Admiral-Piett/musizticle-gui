@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"gioui.org/layout"
-	"gioui.org/unit"
 	"gioui.org/widget/material"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
@@ -12,57 +11,13 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 )
-
-
-func (a *App) TabsBar(gtx layout.Context) layout.Dimensions {
-	margins := layout.Inset{
-		Top:    unit.Dp(5),
-		Right:  unit.Dp(2),
-		Bottom: unit.Dp(5),
-		Left:   unit.Dp(2),
-	}
-
-	weightMap := make(map[string]float32)
-	for _, tab := range TAB_LIST {
-		weightMap[tab] = 0.2
-		if a.selectedTab == tab {
-			weightMap[tab] = 1
-		}
-	}
-
-	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-		layout.Rigid(
-			layout.Spacer{Width: unit.Dp(10)}.Layout,
-		),
-		layout.Flexed(weightMap[HOME_TAB], func(gtx layout.Context) layout.Dimensions {
-			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return material.Button(th, &a.homeTab, "Home").Layout(gtx)
-			})
-		}),
-		layout.Flexed(weightMap[NEXT_TAB], func(gtx layout.Context) layout.Dimensions {
-			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return material.Button(th, &a.nextTab, "Up Next").Layout(gtx)
-			})
-		}),
-		layout.Flexed(weightMap[PREVIOUS_TAB], func(gtx layout.Context) layout.Dimensions {
-			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return material.Button(th, &a.previousTab, "Recently Played").Layout(gtx)
-			})
-		}),
-		layout.Rigid(
-			layout.Spacer{Width: unit.Dp(10)}.Layout,
-		),
-	)
-}
 
 //TODO:
 // 	 To change song groupings - playlists, orders, albums, artists, etc.  We should call the backend and update the
 //  	song list to match.
 //	 So, the source of truth should just be the index, so we can look up the song in the list and get what we
 //		want off it, including easily know where it is to fetch more out of the list.
-
 func (a *App) getSong(songId int) (beep.StreamSeekCloser, beep.Format, error) {
 	url := fmt.Sprintf("%s/songs/%d", HOST, songId)
 	request, err := http.NewRequest("GET", url, nil)
@@ -87,39 +42,39 @@ func (a *App) getSong(songId int) (beep.StreamSeekCloser, beep.Format, error) {
 func (a *App) UpdateNavQueues() {
 	//Every time we come through here, if we don't have room for another song, we slice the array at a placement of
 	//one less than the limit from the front of the array.  Meaning if the limit is 20, we get the last 19 to be added.
-	if len(a.navQueuePreviousSongs) >= (NAV_QUEUE_PREVIOUS_LIMIT) {
-		index := len(a.navQueuePreviousSongs) - (NAV_QUEUE_PREVIOUS_LIMIT - 1)
+	if len(a.navQueuePrevious) >= (NAV_QUEUE_PREVIOUS_LIMIT) {
+		index := len(a.navQueuePrevious) - (NAV_QUEUE_PREVIOUS_LIMIT - 1)
 		// Take all the things in the back of the list from the limit so that we leave room to add the new one.
-		a.navQueuePreviousSongs = a.navQueuePreviousSongs[index:]
+		a.navQueuePrevious = a.navQueuePrevious[index:]
 	}
-	if len(a.navQueueNextSongs) >= (NAV_QUEUE_NEXT_LIMIT) {
-		index := len(a.navQueueNextSongs) - (NAV_QUEUE_NEXT_LIMIT - 1)
-		a.navQueueNextSongs = a.navQueueNextSongs[index:]
+	if len(a.navQueueNext) >= (NAV_QUEUE_NEXT_LIMIT) {
+		index := len(a.navQueueNext) - (NAV_QUEUE_NEXT_LIMIT - 1)
+		a.navQueueNext = a.navQueueNext[index:]
 	}
 
-	a.navQueuePreviousSongs = append(a.navQueuePreviousSongs, a.selectedSong)
+	a.navQueuePrevious = append(a.navQueuePrevious, a.selectedSong)
 
-	a.populateNavQueues()
-	log.Printf("navQueueNextSongs - %+v", a.navQueueNextSongs)
-	log.Printf("navQueuePreviousSongs - %+v", a.navQueuePreviousSongs)
+	a.populateNextNavQueue()
+	//log.Printf("navQueueNext - %+v", a.navQueueNext)
+	//log.Printf("navQueuePrevious - %+v", a.navQueuePrevious)
 	return
 }
 
-func (a *App) populateNavQueues() {
+func (a *App) populateNextNavQueue() {
 	//All this is to pre-populate the navQueueNext with the next batch of songs to play, either based on the current
 	//index if we don't have a previous list, or append to the previous list with the songs that follow it in the
 	//current song list.
 	currentIndex := a.selectedSong.songListIndex
-	if len(a.navQueueNextSongs) != 0 {
-		currentIndex = len(a.navQueueNextSongs) - 1
+	if len(a.navQueueNext) != 0 {
+		currentIndex = len(a.navQueueNext) - 1
 	}
-	for len(a.navQueueNextSongs) < NAV_QUEUE_NEXT_LIMIT {
+	for len(a.navQueueNext) < NAV_QUEUE_NEXT_LIMIT {
 		// If we're about to index passed the end of the songList, then reset to 0 and start over
 		nextIndex := currentIndex + 1
 		if nextIndex > len(a.songList) {
 			currentIndex = 0
 		}
-		a.navQueueNextSongs = append(a.navQueueNextSongs, a.songList[nextIndex])
+		a.navQueueNext = append(a.navQueueNext, a.songList[nextIndex])
 		currentIndex++
 	}
 }
@@ -174,13 +129,13 @@ func (a *App) clickStop() {
 }
 
 func (a *App) clickNext() {
-	if len(a.navQueueNextSongs) == 0 {
+	if len(a.navQueueNext) == 0 {
 		log.Println("Nothing in next (wtf are you doing?) - skipping")
 		return
 	}
 	// QUESTION - should I have navQueuePrevious preform like this too?
 	// I don't have to pop this off the queue here, because UpdateNavQueues handles this queue's values automatically.
-	a.selectedSong = a.navQueueNextSongs[0]
+	a.selectedSong = a.navQueueNext[0]
 	a.playSong()
 }
 
@@ -188,31 +143,44 @@ func (a *App) clickPrevious() {
 	// FIXME - should we just start from the back of the current songList?  If so, how would we populate the previous
 	//  list so that it preforms like the navQueueNext?
 	//If we don't have any previous songs, just return
-	if len(a.navQueuePreviousSongs) == 0 {
+	if len(a.navQueuePrevious) == 0 {
 		log.Println("Nothing previously played - skipping")
 		return
 	}
-	// Get the last song off the back of this queue and strip it off since that should be what's currently playing (we
+	// Get the last song off the back of this queue and strip it off since that should be what's currently paused (we
 	//populate the queues before actually executing the song in case you cut it off halfway through), so that we can
 	//click previous more than once and actually move through the queue.
-	currentSongIndex := len(a.navQueuePreviousSongs) - 1
-	a.navQueuePreviousSongs = a.navQueuePreviousSongs[:currentSongIndex]
+	currentSongIndex := len(a.navQueuePrevious) - 1
+	a.navQueuePrevious = a.navQueuePrevious[:currentSongIndex]
 	// FIXME - this is too tedious for every click - upgrade with a little more book keeping for performance down
 	//  the road.
 	// Reset this here because this will get populated completely from where we are currently as the song plays
-	a.navQueueNextSongs = []*Song{}
+	a.navQueueNext = []*Song{}
 
-	previousSongIndex := len(a.navQueuePreviousSongs) - 1
-	a.selectedSong = a.navQueuePreviousSongs[previousSongIndex]
-	a.navQueuePreviousSongs = a.navQueuePreviousSongs[:previousSongIndex]
+	previousSongIndex := len(a.navQueuePrevious) - 1
+	a.selectedSong = a.navQueuePrevious[previousSongIndex]
+	a.navQueuePrevious = a.navQueuePrevious[:previousSongIndex]
 	a.playSong()
+}
+
+func (a *App) clickPlay() {
+	if a.paused {
+		log.Println("Unpause me")
+		a.paused = false
+		a.playSong()
+	} else {
+		a.paused = true
+		speaker.Lock()
+		a.speakerControl.Paused = a.paused
+		speaker.Unlock()
+	}
 }
 
 func (a *App) clickSong(song *Song) {
 	a.selectedSong = song
 	// If we actually clicked on a new song, we can wipe the up next list because it's not relevant any more
 	//considering our new index/position.
-	a.navQueueNextSongs = []*Song{}
+	a.navQueueNext = []*Song{}
 	a.playSong()
 }
 
@@ -238,75 +206,6 @@ func (a *App) SongsList(gtx layout.Context, songsList []*Song) layout.Dimensions
 		return songLineMargins(gtx, line)
 	})
 	return listDimensions
-}
-
-func (a *App) MediaToolBar(gtx layout.Context) layout.Dimensions {
-	margins := layout.Inset{
-		Top:    unit.Dp(5),
-		Right:  unit.Dp(5),
-		Bottom: unit.Dp(10),
-		Left:   unit.Dp(5),
-	}
-	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
-			// TODO - make these icons
-			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return material.Button(th, &a.previous, "Previous").Layout(gtx)
-			})
-		}),
-		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			// TODO - make these icons
-			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return material.Button(th, &a.play, "Play").Layout(gtx)
-			})
-		}),
-		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			// TODO - make these icons
-			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return material.Button(th, &a.stop, "Stop").Layout(gtx)
-			})
-		}),
-		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
-			// TODO - make these icons
-			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return material.Button(th, &a.next, "Next").Layout(gtx)
-			})
-		}),
-	)
-}
-
-//TODO - figure out something more elegant than this for the borders and margins
-// I'm going to need to wrap all kinds of stuff in borders/margins, and I'll need something more elegant
-// FIXME - think about reworking the grid at at some point, they're evenly spaced but also look a little wonky.
-func (a *App) SongsHeader(gtx layout.Context) layout.Dimensions {
-	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-		layout.Rigid(
-			layout.Spacer{Width: unit.Dp(10)}.Layout,
-		),
-		layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "ID").Layout(gtx))
-		}),
-		layout.Flexed(1,
-			func(gtx layout.Context) layout.Dimensions {
-				return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Title").Layout(gtx))
-			},
-		),
-		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Artist").Layout(gtx))
-		}),
-		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Album").Layout(gtx))
-		}),
-		layout.Flexed(0.15, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Track Number").Layout(gtx))
-		}),
-		layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Play Count").Layout(gtx))
-		}),
-		layout.Rigid(
-			layout.Spacer{Width: unit.Dp(10)}.Layout,
-		),
-	)
 }
 
 func (a *App) initSongs() {
@@ -336,37 +235,4 @@ func (a *App) initSongs() {
 	}()
 	a.songs.populated = true
 	log.Println("getSongsComplete")
-}
-
-func buildSongLine(gtx layout.Context, s *Song) layout.Dimensions {
-	lineDimenstions := layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-		layout.Rigid(
-			layout.Spacer{Width: unit.Dp(10)}.Layout,
-		),
-		layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
-			return songFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), strconv.Itoa(s.Id)).Layout(gtx))
-		}),
-		layout.Flexed(1,
-			func(gtx layout.Context) layout.Dimensions {
-				return songFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), s.Name).Layout(gtx))
-			},
-		),
-		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
-			return songFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), s.ArtistName).Layout(gtx))
-		}),
-		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
-			return songFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), s.AlbumName).Layout(gtx))
-		}),
-		layout.Flexed(0.15, func(gtx layout.Context) layout.Dimensions {
-			return songFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), strconv.Itoa(s.TrackNumber)).Layout(gtx))
-		}),
-		layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
-			return songFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), strconv.Itoa(s.PlayCount)).Layout(gtx))
-		}),
-		layout.Rigid(
-			// The height of the spacer is 25 Device independent pixels
-			layout.Spacer{Width: unit.Dp(10)}.Layout,
-		),
-	)
-	return lineDimenstions
 }

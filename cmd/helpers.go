@@ -11,14 +11,14 @@ import (
 )
 
 // ----- Window Stuff -----
-func outerLayoutWrapper(gtx layout.Context, f func() []layout.FlexChild) layout.Dimensions {
+func outerSongListWrapper(gtx layout.Context, f func(songList []*Song) []layout.FlexChild, songList []*Song) layout.Dimensions {
 	l := layout.Flex{
 		// Vertical alignment, from top to bottom
 		Axis: layout.Vertical,
 		// Empty space is left at the start, i.e. at the top
 		Spacing: layout.SpaceStart,
 	}.Layout(gtx,
-		f()...
+		f(songList)...
 	)
 	return l
 }
