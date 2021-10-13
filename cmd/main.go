@@ -106,10 +106,10 @@ func main() {
 		w := app.NewWindow(app.Title("Media Gui"), app.Size(unit.Dp(1500), unit.Dp(900)))
 		s := Songs{}
 		a := App{
-			displayList:       &layout.List{Axis: layout.Vertical},
-			songs:             s,
-			window:            w,
-			selectedTab:       HOME_TAB,
+			displayList: &layout.List{Axis: layout.Vertical},
+			songs:       s,
+			window:      w,
+			selectedTab: HOME_TAB,
 		}
 		go a.initSongs()
 

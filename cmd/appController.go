@@ -14,9 +14,12 @@ import (
 )
 
 //TODO: GENERAL
-// 	 - To change song groupings - playlists, orders, albums, artists, etc.  We should call the backend and update the
-//  	song list to match.
-//   - Shuffle
+// 	- Playlists
+//	- Find songs by Artists/Albums (already done in the back end)
+//	- Repeat (Single and list - list might just work?)
+//	- Search - by song, artist, album, playlist, etc.
+//  - Shuffle
+//	- Rig up to spotify?
 
 func (a *App) getSong(songId int) (beep.StreamSeekCloser, beep.Format, error) {
 	url := fmt.Sprintf("%s/songs/%d", HOST, songId)
@@ -184,7 +187,6 @@ func (a *App) playSong() {
 	}()
 }
 
-
 func (a *App) SongsList(gtx layout.Context, songsList []*Song) layout.Dimensions {
 	if !a.songs.populated {
 		if !a.songs.initSongsInProgress {
@@ -228,10 +230,10 @@ func (a *App) initSongs() {
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	json.Unmarshal(body, &a.songList)
-  	// Make the songs aware of where they are in the "master" songList
+	// Make the songs aware of where they are in the "master" songList
 	go func() {
 		for index, song := range a.songList {
-			 song.songListIndex = index
+			song.songListIndex = index
 		}
 	}()
 	a.songs.populated = true

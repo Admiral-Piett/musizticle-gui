@@ -42,7 +42,7 @@ type App struct {
 	playBtn          widget.Clickable
 	stopBtn          widget.Clickable
 	nextBtn          widget.Clickable
-	previousBtn widget.Clickable
+	previousBtn      widget.Clickable
 	// --- Tabs
 	selectedTab string
 	homeTab     widget.Clickable
@@ -58,11 +58,11 @@ type Songs struct {
 }
 
 type Song struct {
-	line          widget.Clickable
-	songListIndex int
-	Id            int
-]	Title    string
-	ArtistId int
+	line           widget.Clickable
+	songListIndex  int
+	Id             int
+	Title          string
+	ArtistId       int
 	ArtistName     string
 	AlbumId        int
 	AlbumName      string

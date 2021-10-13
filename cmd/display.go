@@ -7,10 +7,6 @@ import (
 	"strconv"
 )
 
-//FIXME - (with FIXME on UpdateNavQueues()) Instead of managing these all independently could I merge into one
-// tabDisplay method that populates a song list?
-// 10/9/2021- meh...I'm not sure I want to do this.  I hate that this code isn't shared but the extra complication would
-//   be a headache.
 func (a *App) tabDisplay(songList []*Song) []layout.FlexChild {
 	displayArray := []layout.FlexChild{
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {

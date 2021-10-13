@@ -18,11 +18,10 @@ func outerSongListWrapper(gtx layout.Context, f func(songList []*Song) []layout.
 		// Empty space is left at the start, i.e. at the top
 		Spacing: layout.SpaceStart,
 	}.Layout(gtx,
-		f(songList)...
+		f(songList)...,
 	)
 	return l
 }
-
 
 // ----- Theme Stuff ------
 // Copied from widget.material.theme.NewTheme
@@ -64,7 +63,6 @@ func CreateTheme(fontCollection []text.FontFace) *material.Theme {
 }
 
 // -------- End Theme -----------
-
 
 // --------- Styling --------------
 func songLineMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
@@ -114,5 +112,3 @@ func tabsFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimension
 		return d
 	})
 }
-
-
