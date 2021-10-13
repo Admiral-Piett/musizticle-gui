@@ -22,8 +22,8 @@ var NAV_QUEUE_PREVIOUS_LIMIT = 20
 var NAV_QUEUE_NEXT_LIMIT = 20
 
 var HOME_TAB = "home"
-var NEXT_TAB = "next"
-var PREVIOUS_TAB = "previous"
+var NEXT_TAB = "nextBtn"
+var PREVIOUS_TAB = "previousBtn"
 var TAB_LIST = []string{HOME_TAB, NEXT_TAB, PREVIOUS_TAB}
 
 type App struct {
@@ -32,18 +32,19 @@ type App struct {
 	songs       Songs
 	window      *app.Window
 	// Speaker Execution
-	SampleRate beep.SampleRate
+	SampleRate     beep.SampleRate
 	speakerControl *beep.Ctrl
 	// --- Song Execution
 	songList         []*Song
 	selectedSong     *Song
 	navQueueNext     []*Song
 	navQueuePrevious []*Song
-	play             widget.Clickable
-	stop             widget.Clickable
-	next             widget.Clickable
-	previous widget.Clickable
-	paused   bool
+	playBtn          widget.Clickable
+	stopBtn          widget.Clickable
+	nextBtn          widget.Clickable
+	previousBtn      widget.Clickable
+	play             chan bool
+	stop             chan bool
 	// --- Tabs
 	selectedTab string
 	homeTab     widget.Clickable

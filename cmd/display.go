@@ -81,7 +81,7 @@ func (a *App) MediaToolBar(gtx layout.Context) layout.Dimensions {
 		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
 			// TODO - make these icons
 			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return material.Button(th, &a.previous, "Previous").Layout(gtx)
+				return material.Button(th, &a.previousBtn, "Previous").Layout(gtx)
 			})
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -91,19 +91,19 @@ func (a *App) MediaToolBar(gtx layout.Context) layout.Dimensions {
 				if a.speakerControl != nil && !a.speakerControl.Paused {
 					text = "Pause"
 				}
-				return material.Button(th, &a.play, text).Layout(gtx)
+				return material.Button(th, &a.playBtn, text).Layout(gtx)
 			})
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			// TODO - make these icons
 			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return material.Button(th, &a.stop, "Stop").Layout(gtx)
+				return material.Button(th, &a.stopBtn, "Stop").Layout(gtx)
 			})
 		}),
 		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
 			// TODO - make these icons
 			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return material.Button(th, &a.next, "Next").Layout(gtx)
+				return material.Button(th, &a.nextBtn, "Next").Layout(gtx)
 			})
 		}),
 	)

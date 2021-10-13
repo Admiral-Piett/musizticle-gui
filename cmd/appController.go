@@ -61,8 +61,8 @@ func (a *App) UpdateNavQueues() {
 }
 
 func (a *App) populateNextNavQueue() {
-	//All this is to pre-populate the navQueueNext with the next batch of songs to play, either based on the current
-	//index if we don't have a previous list, or append to the previous list with the songs that follow it in the
+	//All this is to pre-populate the navQueueNext with the nextBtn batch of songs to playBtn, either based on the current
+	//index if we don't have a previousBtn list, or append to the previousBtn list with the songs that follow it in the
 	//current song list.
 	currentIndex := a.selectedSong.songListIndex
 	if len(a.navQueueNext) != 0 {
@@ -79,16 +79,9 @@ func (a *App) populateNextNavQueue() {
 	}
 }
 
-func (a *App) clickStop() {
-	log.Println("StoppingCurrentSong")
-	<-playing
-	playing <- 0
-	speaker.Clear()
-}
-
 func (a *App) clickNext() {
 	if len(a.navQueueNext) == 0 {
-		log.Println("Nothing in next (wtf are you doing?) - skipping")
+		log.Println("Nothing in nextBtn (wtf are you doing?) - skipping")
 		return
 	}
 	// QUESTION - should I have navQueuePrevious preform like this too?
@@ -98,16 +91,16 @@ func (a *App) clickNext() {
 }
 
 func (a *App) clickPrevious() {
-	// FIXME - should we just start from the back of the current songList?  If so, how would we populate the previous
+	// FIXME - should we just start from the back of the current songList?  If so, how would we populate the previousBtn
 	//  list so that it preforms like the navQueueNext?
-	//If we don't have any previous songs, just return
+	//If we don't have any previousBtn songs, just return
 	if len(a.navQueuePrevious) == 0 {
 		log.Println("Nothing previously played - skipping")
 		return
 	}
 	// Get the last song off the back of this queue and strip it off since that should be what's currently paused (we
 	//populate the queues before actually executing the song in case you cut it off halfway through), so that we can
-	//click previous more than once and actually move through the queue.
+	//click previousBtn more than once and actually move through the queue.
 	currentSongIndex := len(a.navQueuePrevious) - 1
 	a.navQueuePrevious = a.navQueuePrevious[:currentSongIndex]
 	// FIXME - this is too tedious for every click - upgrade with a little more book keeping for performance down
@@ -121,24 +114,34 @@ func (a *App) clickPrevious() {
 	a.playSong()
 }
 
+func (a *App) clickStop() {
+	log.Println("StoppingCurrentSong")
+	//a.stop <-true
+	<-playing
+	playing <- 0
+	speaker.Clear()
+}
+
 //TODO - NEXT - I think I need something like this here - https://github.com/pfortin-urbn/stalk/blob/master/collectors/aws/aws_collector.go#L106-L125
-//  Otherwise I can only pause/unpause once.  I need this to govern it's own status and manage the state of play
+//  Otherwise I can only pause/unpause once.  I need this to govern it's own status and manage the state of playBtn
 // to prevent leaving a ton of gorountines going by mistake.
 func (a *App) clickPlay() {
-	if a.speakerControl == nil || a.speakerControl.Paused {
-		log.Println("Playing me")
-		go a.playSong()
-	} else {
-		log.Println("Pausing me")
-		speaker.Lock()
-		a.speakerControl.Paused = true
-		speaker.Unlock()
-	}
+
+	go a.playSong()
+	//if a.speakerControl == nil || a.speakerControl.Paused {
+	//	log.Println("Playing me")
+	//	go a.playSong()
+	//} else {
+	//	log.Println("Pausing me")
+	//	speaker.Lock()
+	//	a.speakerControl.Paused = true
+	//	speaker.Unlock()
+	//}
 }
 
 func (a *App) clickSong(song *Song) {
 	a.selectedSong = song
-	// If we actually clicked on a new song, we can wipe the up next list because it's not relevant any more
+	// If we actually clicked on a new song, we can wipe the up nextBtn list because it's not relevant any more
 	//considering our new index/position.
 	a.navQueueNext = []*Song{}
 	a.playSong()
@@ -152,13 +155,13 @@ func (a *App) playSong() {
 	songId := a.selectedSong.Id
 	songName := a.selectedSong.Name
 
-	// All this checking for nil business is in case we haven't up up the control yet - AKA this is our first song to play.
-	if a.speakerControl != nil && a.speakerControl.Paused {
-		speaker.Lock()
-		a.speakerControl.Paused = false
-		speaker.Unlock()
-		return
-	}
+	//// All this checking for nil business is in case we haven't up up the control yet - AKA this is our first song to playBtn.
+	//if a.speakerControl != nil && a.speakerControl.Paused {
+	//	speaker.Lock()
+	//	a.speakerControl.Paused = false
+	//	speaker.Unlock()
+	//	return
+	//}
 
 	if currentSongId == songId {
 		playing <- currentSongId
@@ -169,7 +172,7 @@ func (a *App) playSong() {
 	playing <- songId
 	go func() {
 		log.Printf("PlayingSong - Index: %d, Id: %d, Name: %s", a.selectedSong.songListIndex, songId, songName)
-		streamer, _, err := a.getSong(songId)
+		streamer, format, err := a.getSong(songId)
 		if err != nil {
 			log.Printf("ClickSongFailure - %+v", err)
 			return
@@ -178,24 +181,41 @@ func (a *App) playSong() {
 
 		go a.UpdateNavQueues()
 
-		//resampled := beep.Resample(4, a.SampleRate, format.SampleRate, streamer)
+		resampled := beep.Resample(4, a.SampleRate, format.SampleRate, streamer)
 		//Clear any existing songs that might be going on
 		speaker.Clear()
 		//Create this to make the app wait for this song to finish before the callback fires
-		//done := make(chan bool)
-		//streamer := beep.Seq(resampled, beep.Callback(func() {
-		//	// TODO - Set up shuffle, and better song list navigation (can't just increment the song id)
-		//	//	TODO - set up a channel to handle queue waiting & and reverse for recently played
-		//	a.selectedSong = a.navQueueNext[0]
-		//	done <- true
-		//	a.paused = true
-		//	go a.playSong()
-		//}))
-		a.speakerControl = &beep.Ctrl{Streamer: streamer, Paused: false}
 		done := make(chan bool)
-		speaker.Play(a.speakerControl)
-		<- done
+		speaker.Play(beep.Seq(resampled, beep.Callback(func() {
+			// TODO - Set up shuffle, and better song list navigation (can't just increment the song id)
+			//	TODO - set up a channel to handle queue waiting & and reverse for recently played
+			a.selectedSong = a.navQueueNext[0]
+			done <- true
+			go a.playSong()
+		})))
+		<-done
 	}()
+		//a.speakerControl = &beep.Ctrl{Streamer: streamer, Paused: false}
+		//done := make(chan bool)
+		//speaker.Play(a.speakerControl)
+		//<- done
+		//a.selectedSong = a.navQueueNext[0]
+		//go a.playSong()
+}
+
+func (a *App) StartPlayLoop(){
+	for {
+		select {
+		case p := <-a.play:
+			if a.speakerControl == nil {
+				continue
+			}
+			speaker.Lock()
+			//Flip whatever bool we put on the chan.  ex. If "play" == true, then "paused" == false.
+			a.speakerControl.Paused = !p
+			speaker.Unlock()
+		}
+	}
 }
 
 

@@ -30,19 +30,19 @@ func (a *App) draw() error {
 					log.Println("Reload clicked")
 					go a.initSongs()
 				}
-				if a.play.Clicked() {
+				if a.playBtn.Clicked() {
 					log.Println("Play clicked")
 					a.clickPlay()
 				}
-				if a.stop.Clicked() {
+				if a.stopBtn.Clicked() {
 					log.Println("Stop clicked")
 					go a.clickStop()
 				}
-				if a.next.Clicked() {
+				if a.nextBtn.Clicked() {
 					log.Println("Next clicked")
 					go a.clickNext()
 				}
-				if a.previous.Clicked() {
+				if a.previousBtn.Clicked() {
 					log.Println("Previous clicked")
 					go a.clickPrevious()
 				}
@@ -50,19 +50,16 @@ func (a *App) draw() error {
 					log.Println("Home Tab clicked")
 					a.selectedTab = HOME_TAB
 					op.InvalidateOp{}.Add(gtx.Ops)
-					//a.window.Invalidate()
 				}
 				if a.nextTab.Clicked() {
 					log.Println("Next Tab clicked")
 					a.selectedTab = NEXT_TAB
 					op.InvalidateOp{}.Add(gtx.Ops)
-					//a.window.Invalidate()
 				}
 				if a.previousTab.Clicked() {
 					log.Println("Previous Tab clicked")
 					a.selectedTab = PREVIOUS_TAB
 					op.InvalidateOp{}.Add(gtx.Ops)
-					//a.window.Invalidate()
 				}
 				if a.selectedTab == NEXT_TAB {
 					if len(a.navQueueNext) == 0 {
@@ -120,6 +117,7 @@ func main() {
 		//Put an invalid song id on the playing queue to start with
 		playing <- -1
 		a.SetUpSpeaker()
+		//go a.StartPlayLoop()
 
 		if err := a.draw(); err != nil {
 			log.Fatal(err)
