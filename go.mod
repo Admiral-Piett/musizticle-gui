@@ -1,4 +1,4 @@
-module github.com/Admiral-Piett/media_master_gui
+module github.com/Admiral-Piett/musizticle-gui
 
 go 1.16
 

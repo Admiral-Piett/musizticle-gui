@@ -1,4 +1,4 @@
-build media_master_gui:
-	go build -o media_master_gui cmd/main.go
+build musizticle-gui:
+	go build -o musizticle-gui cmd/main.go
 #create fyne package:
 #	fyne package -icon mylogo.png

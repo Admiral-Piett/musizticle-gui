@@ -1,1 +1,1 @@
-# media_master_gui
+# musizticle-gui
