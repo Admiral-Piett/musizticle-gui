@@ -42,9 +42,7 @@ type App struct {
 	playBtn          widget.Clickable
 	stopBtn          widget.Clickable
 	nextBtn          widget.Clickable
-	previousBtn      widget.Clickable
-	play             chan bool
-	stop             chan bool
+	previousBtn widget.Clickable
 	// --- Tabs
 	selectedTab string
 	homeTab     widget.Clickable
@@ -63,9 +61,8 @@ type Song struct {
 	line          widget.Clickable
 	songListIndex int
 	Id            int
-	// TODO - rename to Title
-	Name           string
-	ArtistId       int
+]	Title    string
+	ArtistId int
 	ArtistName     string
 	AlbumId        int
 	AlbumName      string

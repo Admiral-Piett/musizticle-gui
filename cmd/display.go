@@ -153,7 +153,7 @@ func buildSongLine(gtx layout.Context, s *Song) layout.Dimensions {
 		}),
 		layout.Flexed(1,
 			func(gtx layout.Context) layout.Dimensions {
-				return songFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), s.Name).Layout(gtx))
+				return songFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), s.Title).Layout(gtx))
 			},
 		),
 		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {

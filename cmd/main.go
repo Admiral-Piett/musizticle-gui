@@ -16,7 +16,6 @@ func (a *App) draw() error {
 	var ops op.Ops
 
 	for {
-		//log.Println("loop")
 		select {
 		case <-displayChange:
 			log.Println("update display")
@@ -117,7 +116,6 @@ func main() {
 		//Put an invalid song id on the playing queue to start with
 		playing <- -1
 		a.SetUpSpeaker()
-		//go a.StartPlayLoop()
 
 		if err := a.draw(); err != nil {
 			log.Fatal(err)

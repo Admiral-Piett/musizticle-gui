@@ -3,7 +3,7 @@ package main
 var SONGS = `[
     {
         "Id": 1,
-        "Name": "01 - The Artist Overture",
+        "Title": "01 - The Artist Overture",
         "ArtistId": 1,
         "ArtistName": "The Artist OST",
         "AlbumId": 1,
@@ -16,7 +16,7 @@ var SONGS = `[
     },
     {
         "Id": 2,
-        "Name": "02 - 1927 A Russian Affair",
+        "Title": "02 - 1927 A Russian Affair",
         "ArtistId": 1,
         "ArtistName": "The Artist OST",
         "AlbumId": 1,
@@ -29,7 +29,7 @@ var SONGS = `[
     },
     {
         "Id": 3,
-        "Name": "03 - George Valentin",
+        "Title": "03 - George Valentin",
         "ArtistId": 1,
         "ArtistName": "The Artist OST",
         "AlbumId": 1,
@@ -42,7 +42,7 @@ var SONGS = `[
     },
     {
         "Id": 4,
-        "Name": "04 - Pretty Peppy",
+        "Title": "04 - Pretty Peppy",
         "ArtistId": 1,
         "ArtistName": "The Artist OST",
         "AlbumId": 1,
