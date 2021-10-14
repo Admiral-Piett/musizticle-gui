@@ -77,6 +77,7 @@ func (a *App) draw() error {
 				}
 				e.Frame(gtx.Ops)
 			}
+
 		}
 
 	}
@@ -114,7 +115,7 @@ func main() {
 		go a.initSongs()
 
 		//Put an invalid song id on the playing queue to start with
-		playing <- -1
+		playing = -1
 		a.SetUpSpeaker()
 
 		if err := a.draw(); err != nil {

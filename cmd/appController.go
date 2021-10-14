@@ -67,14 +67,15 @@ func (a *App) populateNextNavQueue() {
 	if len(a.navQueueNext) != 0 {
 		currentIndex = len(a.navQueueNext) - 1
 	}
+	// Get the index of the next song in the list
+	nextIndex := currentIndex + 1
 	for len(a.navQueueNext) < NAV_QUEUE_NEXT_LIMIT {
 		// If we're about to index passed the end of the songList, then reset to 0 and start over
-		nextIndex := currentIndex + 1
-		if nextIndex > len(a.songList) {
-			currentIndex = 0
+		if nextIndex > (len(a.songList) - 1) {
+			nextIndex = 0
 		}
 		a.navQueueNext = append(a.navQueueNext, a.songList[nextIndex])
-		currentIndex++
+		nextIndex++
 	}
 }
 
@@ -112,9 +113,7 @@ func (a *App) clickPrevious() {
 
 func (a *App) clickStop() {
 	log.Println("StoppingCurrentSong")
-	//a.stop <-true
-	<-playing
-	playing <- 0
+	playing = 0
 	speaker.Clear()
 }
 
@@ -149,12 +148,10 @@ func (a *App) playSong() {
 	if a.selectedSong == nil {
 		a.selectedSong = a.songList[0]
 	}
-	currentSongId := <-playing
 	songId := a.selectedSong.Id
 	songName := a.selectedSong.Title
 
-	if currentSongId == songId {
-		playing <- currentSongId
+	if playing == songId {
 		log.Printf("CurrentSongAlreadyPlaying - Index: %d, Id: %d, Title: %s", a.selectedSong.songListIndex, songId, songName)
 		return
 	}
@@ -169,7 +166,7 @@ func (a *App) playSong() {
 		}
 		defer streamer.Close()
 
-		playing <- songId
+		playing = songId
 		go a.UpdateNavQueues()
 
 		a.speakerControl = &beep.Ctrl{Streamer: streamer, Paused: false}

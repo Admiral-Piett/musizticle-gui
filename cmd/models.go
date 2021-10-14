@@ -14,7 +14,7 @@ var th = CreateTheme(gofont.Collection())
 // TODO - SECRETIFY - environmentalize
 var HOST = "http://localhost:9000/api"
 
-var playing = make(chan int, 1)
+var playing int
 var displayChange = make(chan bool)
 
 // TODO - SECRETIFY - environmentalize
