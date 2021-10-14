@@ -18,6 +18,12 @@ func (a *App) tabDisplay(songList []*Song) []layout.FlexChild {
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			return a.SongsList(gtx, songList)
 		}),
+		layout.Rigid(
+			func(gtx layout.Context) layout.Dimensions {
+				bar := material.ProgressBar(th, progress) // Here progress is used
+				return bar.Layout(gtx)
+			},
+		),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return a.MediaToolBar(gtx)
 		}),

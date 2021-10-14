@@ -112,3 +112,9 @@ func tabsFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimension
 		return d
 	})
 }
+
+func setProgress() {
+	if progress >= 1 {
+		progress = 0
+	}
+}

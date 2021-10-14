@@ -14,8 +14,11 @@ var th = CreateTheme(gofont.Collection())
 // TODO - SECRETIFY - environmentalize
 var HOST = "http://localhost:9000/api"
 
-var playing int
+var currentSongId int
 var displayChange = make(chan bool)
+
+var progressIncrementer chan float32
+var progress float32
 
 // TODO - SECRETIFY - environmentalize
 var NAV_QUEUE_PREVIOUS_LIMIT = 20
@@ -35,6 +38,7 @@ type App struct {
 	SampleRate     beep.SampleRate
 	speakerControl *beep.Ctrl
 	// --- Song Execution
+	playing          bool
 	songList         []*Song
 	selectedSong     *Song
 	navQueueNext     []*Song

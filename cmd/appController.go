@@ -113,7 +113,9 @@ func (a *App) clickPrevious() {
 
 func (a *App) clickStop() {
 	log.Println("StoppingCurrentSong")
-	playing = 0
+	currentSongId = 0
+	a.playing = false
+	progress = 0
 	speaker.Clear()
 }
 
@@ -125,11 +127,13 @@ func (a *App) clickPlay() {
 		a.playSong()
 	} else if a.speakerControl.Paused {
 		log.Println("Un-Pausing me")
+		a.playing = true
 		speaker.Lock()
 		a.speakerControl.Paused = false
 		speaker.Unlock()
 	} else {
 		log.Println("Pausing me")
+		a.playing = false
 		speaker.Lock()
 		a.speakerControl.Paused = true
 		speaker.Unlock()
@@ -151,7 +155,7 @@ func (a *App) playSong() {
 	songId := a.selectedSong.Id
 	songName := a.selectedSong.Title
 
-	if playing == songId {
+	if currentSongId == songId {
 		log.Printf("CurrentSongAlreadyPlaying - Index: %d, Id: %d, Title: %s", a.selectedSong.songListIndex, songId, songName)
 		return
 	}
@@ -166,8 +170,11 @@ func (a *App) playSong() {
 		}
 		defer streamer.Close()
 
-		playing = songId
+		currentSongId = songId
 		go a.UpdateNavQueues()
+
+		a.playing = true
+		progress = 0
 
 		a.speakerControl = &beep.Ctrl{Streamer: streamer, Paused: false}
 		resampled := beep.Resample(4, a.SampleRate, format.SampleRate, a.speakerControl)

@@ -77,7 +77,11 @@ func (a *App) draw() error {
 				}
 				e.Frame(gtx.Ops)
 			}
-
+		case p := <-progressIncrementer:
+			if a.playing && progress < 1 {
+				progress += p
+				a.window.Invalidate()
+			}
 		}
 
 	}
@@ -102,6 +106,15 @@ func (a *App) SetUpSpeaker() {
 }
 
 func main() {
+	// TODO - NEXT - figure out how to calculate this to hit one as the song finishes.  Need to find the length of
+	//  the song somewhere - from the file maybe?
+	progressIncrementer = make(chan float32)
+	go func() {
+		for {
+			time.Sleep(time.Second / 25)
+			progressIncrementer <- 0.004
+		}
+	}()
 	go func() {
 		// create new window
 		w := app.NewWindow(app.Title("Media Gui"), app.Size(unit.Dp(1500), unit.Dp(900)))
@@ -114,8 +127,8 @@ func main() {
 		}
 		go a.initSongs()
 
-		//Put an invalid song id on the playing queue to start with
-		playing = -1
+		//Put an invalid song id on the currentSongId queue to start with
+		currentSongId = -1
 		a.SetUpSpeaker()
 
 		if err := a.draw(); err != nil {
