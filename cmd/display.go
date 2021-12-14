@@ -2,6 +2,7 @@ package main
 
 import (
 	"gioui.org/layout"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 	"strconv"
@@ -18,6 +19,9 @@ func (a *App) tabDisplay(songList []*Song) []layout.FlexChild {
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			return a.SongsList(gtx, songList)
 		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return a.MediaInfoBar(gtx)
+		}),
 		layout.Rigid(
 			func(gtx layout.Context) layout.Dimensions {
 				bar := material.ProgressBar(th, progress) // Here progress is used
@@ -25,7 +29,7 @@ func (a *App) tabDisplay(songList []*Song) []layout.FlexChild {
 			},
 		),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return a.MediaToolBar(gtx)
+			return a.MediaControlBar(gtx)
 		}),
 	}
 	return displayArray
@@ -72,7 +76,32 @@ func (a *App) TabsBar(gtx layout.Context) layout.Dimensions {
 	)
 }
 
-func (a *App) MediaToolBar(gtx layout.Context) layout.Dimensions {
+func (a *App) MediaInfoBar(gtx layout.Context) layout.Dimensions {
+	margins := layout.Inset{
+		Top:    unit.Dp(5),
+		Right:  unit.Dp(5),
+		Bottom: unit.Dp(10),
+		Left:   unit.Dp(5),
+	}
+
+	title := ""
+	if a.selectedSong != nil {
+		title = a.selectedSong.Title
+	}
+	songTitleLabel := material.Label(th, unit.Dp(float32(20)), title)
+	songTitleLabel.Alignment = text.Middle
+
+	// TODO - add duration and time played tracker
+	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return songTitleLabel.Layout(gtx)
+			})
+		}),
+	)
+}
+
+func (a *App) MediaControlBar(gtx layout.Context) layout.Dimensions {
 	margins := layout.Inset{
 		Top:    unit.Dp(5),
 		Right:  unit.Dp(5),

@@ -73,6 +73,7 @@ type Song struct {
 	TrackNumber    int
 	PlayCount      int
 	FilePath       string
+	Duration       int
 	CreatedAt      string
 	LastModifiedAt string
 }

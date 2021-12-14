@@ -105,16 +105,28 @@ func (a *App) SetUpSpeaker() {
 	log.Println("SettingUpSpeakerFinish")
 }
 
+func resetProgress(duration int) {
+	// Empty the channel
+	for len(progressIncrementer) > 0 {
+		<-progressIncrementer
+	}
+	// The goal is to find the value to increment every 25th of a second in order to reach one when the song ends.
+	// So start by multiplying the duration by 25 (how many updates we'll have), and divide 1 by that value to see
+	//  what value would go into 1 by our total times.
+	incrementCount := duration * 25
+	incrementValue := 1 / (float32(incrementCount))
+	go func() {
+		for i := 0; i <= (incrementCount); i++ {
+			time.Sleep(time.Second / 25)
+			progressIncrementer <- incrementValue
+		}
+	}()
+}
+
 func main() {
 	// TODO - NEXT - figure out how to calculate this to hit one as the song finishes.  Need to find the length of
 	//  the song somewhere - from the file maybe?
 	progressIncrementer = make(chan float32)
-	go func() {
-		for {
-			time.Sleep(time.Second / 25)
-			progressIncrementer <- 0.004
-		}
-	}()
 	go func() {
 		// create new window
 		w := app.NewWindow(app.Title("Media Gui"), app.Size(unit.Dp(1500), unit.Dp(900)))

@@ -142,6 +142,7 @@ func (a *App) clickPlay() {
 
 func (a *App) clickSong(song *Song) {
 	a.selectedSong = song
+	progress = float32(song.Duration)
 	// If we actually clicked on a new song, we can wipe the up nextBtn list because it's not relevant any more
 	//considering our new index/position.
 	a.navQueueNext = []*Song{}
@@ -160,8 +161,10 @@ func (a *App) playSong() {
 		return
 	}
 
+	resetProgress(a.selectedSong.Duration)
 	go func() {
 		log.Printf("PlayingSong - Index: %d, Id: %d, Title: %s", a.selectedSong.songListIndex, songId, songName)
+		// TODO - pull from a cache
 		streamer, format, err := a.getSong(songId)
 		//streamer, _, err := a.getSong(songId)
 		if err != nil {

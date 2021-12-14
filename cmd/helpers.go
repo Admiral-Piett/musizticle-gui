@@ -100,21 +100,3 @@ func headerFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensi
 		return d
 	})
 }
-
-func tabsFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
-	margins := layout.Inset{
-		Top:    unit.Dp(5),
-		Right:  unit.Dp(0),
-		Bottom: unit.Dp(10),
-		Left:   unit.Dp(0),
-	}
-	return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return d
-	})
-}
-
-func setProgress() {
-	if progress >= 1 {
-		progress = 0
-	}
-}
