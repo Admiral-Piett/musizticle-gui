@@ -6,6 +6,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/widget"
 	"github.com/faiface/beep"
+	"time"
 )
 
 // TODO - Explore other font collections
@@ -19,6 +20,14 @@ var displayChange = make(chan bool)
 
 var progressIncrementer chan float32
 var progress float32
+
+var loginRequired bool
+var loginUsername widget.Editor
+var loginPassword widget.Editor
+var loginButton widget.Clickable
+var authToken string
+// TODO - SECRETIFY - environmentalize
+var authExpirationTime time.Time
 
 // TODO - SECRETIFY - environmentalize
 var NAV_QUEUE_PREVIOUS_LIMIT = 20
@@ -76,4 +85,15 @@ type Song struct {
 	Duration       int
 	CreatedAt      string
 	LastModifiedAt string
+}
+
+type AuthRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type AuthResponse struct {
+	AuthToken string `json:"authToken"`
+	ReauthToken string `json:"reauthToken"`
+	ExpirationTime string `json:"expirationTime"`
 }

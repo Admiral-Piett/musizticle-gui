@@ -4,9 +4,85 @@ import (
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"image/color"
 	"strconv"
 )
+
+func (a *App) displayLoginWindow(gtx layout.Context) layout.Dimensions {
+	border := widget.Border{
+		Color:        color.NRGBA{R: 204, G: 204, B: 204, A: 255},
+		CornerRadius: unit.Dp(3),
+		Width:        unit.Dp(2),
+	}
+	innerMargins := layout.Inset{
+		Top:    unit.Dp(10),
+		Right:  unit.Dp(10),
+		Bottom: unit.Dp(10),
+		Left:   unit.Dp(10),
+	}
+	usernameInput := material.Editor(th, &loginUsername, "username")
+	passwordInput := material.Editor(th, &loginPassword, "password")
+
+	loginBox := layout.Flex{
+		// Vertical alignment, from top to bottom
+		Axis: layout.Vertical,
+		// Empty space is left at the start, i.e. at the top
+		Spacing: layout.SpaceEnd,
+	}.Layout(gtx,
+		layout.Rigid(
+			layout.Spacer{Height: unit.Dp(25)}.Layout,
+		),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return innerMargins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal}.Layout(
+					gtx,
+					layout.Rigid(material.Label(th, unit.Dp(float32(25)), "Username").Layout),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(10)}.Layout,),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return innerMargins.Layout(gtx, usernameInput.Layout)
+						})
+					}),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(10)}.Layout,),
+				)
+			})
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			// Note: We have to do this kind of thing because we have to return a function that when called RETURNS
+			// 	the actual DIMENSIONS to the layout above (all it needs to know is how much space to make for this
+			// 	piece). Calling Layout() ourselves on an object exposes those dimensions, so we need to be careful about catching that and returning something callable.
+			return innerMargins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal}.Layout(
+					gtx,
+					layout.Rigid(material.Label(th, unit.Dp(float32(25)), "Password").Layout),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(10)}.Layout,),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return innerMargins.Layout(gtx, passwordInput.Layout)
+						})
+					}),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(10)}.Layout,),
+				)
+			})
+		}),
+		layout.Rigid(
+			layout.Spacer{Height: unit.Dp(25)}.Layout,
+		),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceAround}.Layout(
+				gtx,
+				//layout.Rigid(layout.Spacer{Width: unit.Dp(25)}.Layout,),
+				layout.Rigid(material.Button(th, &loginButton, "Log In").Layout),
+				//layout.Rigid(layout.Spacer{Width: unit.Dp(25)}.Layout,),
+
+			)
+		}),
+	)
+
+	return loginBox
+}
 
 func (a *App) tabDisplay(songList []*Song) []layout.FlexChild {
 	displayArray := []layout.FlexChild{

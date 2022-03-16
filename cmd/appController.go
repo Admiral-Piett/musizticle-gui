@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"gioui.org/layout"
@@ -11,6 +12,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 //TODO: GENERAL
@@ -245,4 +247,55 @@ func (a *App) initSongs() {
 	}()
 	a.songs.populated = true
 	log.Println("getSongsComplete")
+}
+
+func (a *App) startUp() {
+	loginRequired = true
+	// TODO - wire up file
+	if loginRequired {
+		return
+	}
+
+	a.initSongs()
+	//Put an invalid song id on the currentSongId queue to start with
+	currentSongId = -1
+	a.SetUpSpeaker()
+}
+
+func (a *App) login() {
+	log.Println("loginStart")
+	url := fmt.Sprintf("%s/auth", HOST)
+	requestBody := AuthRequest{
+		Username: loginUsername.Text(),
+		Password: loginPassword.Text(),
+	}
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		// TODO - figure out how to display a banner or something
+		log.Printf("CredentialMarshallingFailure: %s\n", err)
+	}
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		log.Printf("LoginRequestFailure: %s\n", err)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("LoginRequestFailure: %s\n", err)
+	}
+	responseBody := &AuthResponse{}
+	err = json.Unmarshal(body, responseBody)
+	if err != nil {
+		log.Printf("CredentialUnarshallingFailure: %s\n", err)
+	}
+
+	expiration, err := time.Parse(time.RFC3339,responseBody.ExpirationTime)
+	if err != nil {
+		log.Printf("ExpirationParsingFailure: %s\n", err)
+	}
+	authToken = responseBody.AuthToken
+	// Subtract 5 minutes from the expiration time so we are always ahead of when it actually expires
+	authExpirationTime = expiration.Add(-5*time.Minute)
+	loginRequired = false
+	log.Println("loginComplete")
+	// TODO - HERE - save off credentials locally
 }

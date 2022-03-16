@@ -25,6 +25,10 @@ func (a *App) draw() error {
 			case system.FrameEvent:
 				gtx := layout.NewContext(&ops, e)
 
+				if loginButton.Clicked() {
+					a.login()
+					op.InvalidateOp{}.Add(gtx.Ops)
+				}
 				if a.songs.reload.Clicked() {
 					log.Println("Reload clicked")
 					go a.initSongs()
@@ -60,7 +64,9 @@ func (a *App) draw() error {
 					a.selectedTab = PREVIOUS_TAB
 					op.InvalidateOp{}.Add(gtx.Ops)
 				}
-				if a.selectedTab == NEXT_TAB {
+				if loginRequired {
+					a.displayLoginWindow(gtx)
+				} else if a.selectedTab == NEXT_TAB {
 					if len(a.navQueueNext) == 0 {
 						outerSongListWrapper(gtx, a.tabDisplay, a.songList)
 					} else {
@@ -137,11 +143,14 @@ func main() {
 			window:      w,
 			selectedTab: HOME_TAB,
 		}
-		go a.initSongs()
+
+		loginRequired = true
+		//go a.initSongs()
+		go a.startUp()
 
 		//Put an invalid song id on the currentSongId queue to start with
-		currentSongId = -1
-		a.SetUpSpeaker()
+		//currentSongId = -1
+		//a.SetUpSpeaker()
 
 		if err := a.draw(); err != nil {
 			log.Fatal(err)

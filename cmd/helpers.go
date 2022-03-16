@@ -100,3 +100,8 @@ func headerFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensi
 		return d
 	})
 }
+
+// --------- Auth --------------
+func generateHeaders() {
+	// TODO - HERE - generate headers for all the HTTP requests
+}
