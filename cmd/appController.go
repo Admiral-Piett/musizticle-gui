@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"gioui.org/layout"
@@ -9,9 +8,9 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
-	"io"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -30,6 +29,7 @@ func (a *App) getSong(songId int) (beep.StreamSeekCloser, beep.Format, error) {
 		return nil, beep.Format{}, err
 	}
 	request.Header.Set("Content-Type", "multipart/form-data;")
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
 	client := &http.Client{}
 	resp, err := client.Do(request)
 	if err != nil {
@@ -151,6 +151,7 @@ func (a *App) clickSong(song *Song) {
 	a.playSong()
 }
 
+//TODO - HERE - check this out
 func (a *App) playSong() {
 	if a.selectedSong == nil {
 		a.selectedSong = a.songList[0]
@@ -231,15 +232,11 @@ func (a *App) initSongs() {
 		displayChange <- true
 	}()
 	url := fmt.Sprintf("%s/songs", HOST)
-	resp, err := http.Get(url)
+	err := Get(url, &a.songList,true)
 	if err != nil {
 		log.Println("Failed to get songs")
 		return
 	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	json.Unmarshal(body, &a.songList)
-	// Make the songs aware of where they are in the "master" songList
 	go func() {
 		for index, song := range a.songList {
 			song.songListIndex = index
@@ -251,7 +248,8 @@ func (a *App) initSongs() {
 
 func (a *App) startUp() {
 	loginRequired = true
-	// TODO - wire up file
+	// Attempt to login with any stored config we have
+	a.login()
 	if loginRequired {
 		return
 	}
@@ -265,27 +263,29 @@ func (a *App) startUp() {
 func (a *App) login() {
 	log.Println("loginStart")
 	url := fmt.Sprintf("%s/auth", HOST)
-	requestBody := AuthRequest{
-		Username: loginUsername.Text(),
-		Password: loginPassword.Text(),
+
+	requestBody := AuthRequest{}
+	// If we don't have anything in the input fields (should only happen at start up), then try to read from the file.
+	//If we can't do that either just return and let them open the login menu.
+	if loginUsername.Text() == "" || loginPassword.Text() == "" {
+		authCreds, err := os.ReadFile("config")
+		if err != nil {
+			return
+		}
+		err = json.Unmarshal(authCreds, &requestBody)
+		if err != nil || requestBody.Username == "" || requestBody.Password == "" {
+			return
+		}
+	} else {
+		requestBody.Username = loginUsername.Text()
+		requestBody.Password = loginPassword.Text()
 	}
-	jsonBody, err := json.Marshal(requestBody)
-	if err != nil {
-		// TODO - figure out how to display a banner or something
-		log.Printf("CredentialMarshallingFailure: %s\n", err)
-	}
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
-	if err != nil {
-		log.Printf("LoginRequestFailure: %s\n", err)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("LoginRequestFailure: %s\n", err)
-	}
+
 	responseBody := &AuthResponse{}
-	err = json.Unmarshal(body, responseBody)
+
+	err := Post(url, requestBody, responseBody, false)
 	if err != nil {
-		log.Printf("CredentialUnarshallingFailure: %s\n", err)
+		log.Printf("LoginFailure: %s\n", err)
 	}
 
 	expiration, err := time.Parse(time.RFC3339,responseBody.ExpirationTime)
@@ -295,7 +295,19 @@ func (a *App) login() {
 	authToken = responseBody.AuthToken
 	// Subtract 5 minutes from the expiration time so we are always ahead of when it actually expires
 	authExpirationTime = expiration.Add(-5*time.Minute)
+
+	// Make sure these are set since we may have just got them from the file.
+	if loginUsername.Text() == "" || loginPassword.Text() == "" {
+		loginUsername.SetText(requestBody.Username)
+		loginPassword.SetText(requestBody.Password)
+	}
 	loginRequired = false
+
+	// Convert current credentials to bytes and save off to a file
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		log.Printf("SaveToFileFailure: %s\n", err)
+	}
+	_ = os.WriteFile("config", jsonBody, 0777)
 	log.Println("loginComplete")
-	// TODO - HERE - save off credentials locally
 }

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -8,6 +11,9 @@ import (
 	"gioui.org/widget/material"
 	"golang.org/x/exp/shiny/materialdesign/icons"
 	"image/color"
+	"io"
+	"log"
+	"net/http"
 )
 
 // ----- Window Stuff -----
@@ -101,7 +107,64 @@ func headerFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensi
 	})
 }
 
+// --------- HTTP --------------
+func Get(url string, responseValue interface{}, auth bool) error {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json;")
+	if auth {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(body, &responseValue)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func Post(url string, requestBody, responseValue interface{}, auth bool) error {
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		// TODO - figure out how to display a banner or something
+		log.Printf("CredentialMarshallingFailure: %s\n", err)
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return err
+	}
+	if auth {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	// TODO - see what happens with an empty response? - import
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(body, responseValue)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // --------- Auth --------------
 func generateHeaders() {
 	// TODO - HERE - generate headers for all the HTTP requests
+
 }
