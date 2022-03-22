@@ -1,12 +1,86 @@
 package main
 
 import (
+	"fmt"
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"image/color"
 	"strconv"
 )
+
+func (a *App) displayLoginWindow(gtx layout.Context) layout.Dimensions {
+	border := widget.Border{
+		Color:        color.NRGBA{R: 204, G: 204, B: 204, A: 255},
+		CornerRadius: unit.Dp(3),
+		Width:        unit.Dp(2),
+	}
+	innerMargins := layout.Inset{
+		Top:    unit.Dp(10),
+		Right:  unit.Dp(10),
+		Bottom: unit.Dp(10),
+		Left:   unit.Dp(10),
+	}
+	usernameInput := material.Editor(th, &loginUsername, "username")
+	passwordInput := material.Editor(th, &loginPassword, "password")
+
+	loginBox := layout.Flex{
+		// Vertical alignment, from top to bottom
+		Axis: layout.Vertical,
+		// Empty space is left at the start, i.e. at the top
+		Spacing: layout.SpaceEnd,
+	}.Layout(gtx,
+		layout.Rigid(
+			layout.Spacer{Height: unit.Dp(25)}.Layout,
+		),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return innerMargins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal}.Layout(
+					gtx,
+					layout.Rigid(material.Label(th, unit.Dp(float32(25)), "Username").Layout),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(10)}.Layout),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return innerMargins.Layout(gtx, usernameInput.Layout)
+						})
+					}),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(10)}.Layout),
+				)
+			})
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			// Note: We have to do this kind of thing because we have to return a function that when called RETURNS
+			// 	the actual DIMENSIONS to the layout above (all it needs to know is how much space to make for this
+			// 	piece). Calling Layout() ourselves on an object exposes those dimensions, so we need to be careful about catching that and returning something callable.
+			return innerMargins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal}.Layout(
+					gtx,
+					layout.Rigid(material.Label(th, unit.Dp(float32(25)), "Password").Layout),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(10)}.Layout),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return innerMargins.Layout(gtx, passwordInput.Layout)
+						})
+					}),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(10)}.Layout),
+				)
+			})
+		}),
+		layout.Rigid(
+			layout.Spacer{Height: unit.Dp(25)}.Layout,
+		),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceAround}.Layout(
+				gtx,
+				layout.Rigid(material.Button(th, &loginButton, "Log In").Layout),
+			)
+		}),
+	)
+
+	return loginBox
+}
 
 func (a *App) tabDisplay(songList []*Song) []layout.FlexChild {
 	displayArray := []layout.FlexChild{
@@ -80,25 +154,59 @@ func (a *App) MediaInfoBar(gtx layout.Context) layout.Dimensions {
 	margins := layout.Inset{
 		Top:    unit.Dp(5),
 		Right:  unit.Dp(5),
-		Bottom: unit.Dp(10),
+		Bottom: unit.Dp(5),
 		Left:   unit.Dp(5),
+	}
+	outerMargins := layout.Inset{
+		Top:    unit.Dp(0),
+		Right:  unit.Dp(5),
+		Bottom: unit.Dp(5),
+		Left:   unit.Dp(5),
+	}
+	border := widget.Border{
+		Color:        color.NRGBA{R: 204, G: 204, B: 204, A: 255},
+		CornerRadius: unit.Dp(3),
+		Width:        unit.Dp(2),
 	}
 
 	title := ""
+	duration := 0
+	playLength := 0
 	if a.selectedSong != nil {
 		title = a.selectedSong.Title
+		duration = a.selectedSong.Duration
 	}
+
+	// Calculate how many seconds we've been playing this song based on adding the current song progress
+	//	(from the progress bar) onto zero and multiplying it by the total duration of the song.
+	if duration != 0 {
+		playLength = int((0 + progress) * float32(duration))
+	}
+
 	songTitleLabel := material.Label(th, unit.Dp(float32(20)), title)
 	songTitleLabel.Alignment = text.Middle
+	songDurationLabel := material.Label(th, unit.Dp(float32(20)), fmt.Sprintf("%s - %s", generateDurationString(playLength), generateDurationString(duration)))
+	songDurationLabel.Alignment = text.Middle
 
-	// TODO - add duration and time played tracker
-	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return songTitleLabel.Layout(gtx)
-			})
-		}),
-	)
+	// NOTE: Good example of layering return values
+	return outerMargins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+				// Title
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					// NOTE: Good example of layering return values
+					return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return songTitleLabel.Layout(gtx)
+					})
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return songDurationLabel.Layout(gtx)
+					})
+				}),
+			)
+		})
+	})
 }
 
 func (a *App) MediaControlBar(gtx layout.Context) layout.Dimensions {
@@ -144,34 +252,47 @@ func (a *App) MediaControlBar(gtx layout.Context) layout.Dimensions {
 // I'm going to need to wrap all kinds of stuff in borders/margins, and I'll need something more elegant
 // FIXME - think about reworking the grid at at some point, they're evenly spaced but also look a little wonky.
 func (a *App) SongsHeader(gtx layout.Context) layout.Dimensions {
-	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-		layout.Rigid(
-			layout.Spacer{Width: unit.Dp(10)}.Layout,
-		),
-		layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "ID").Layout(gtx))
-		}),
-		layout.Flexed(1,
-			func(gtx layout.Context) layout.Dimensions {
-				return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Title").Layout(gtx))
-			},
-		),
-		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Artist").Layout(gtx))
-		}),
-		layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Album").Layout(gtx))
-		}),
-		layout.Flexed(0.15, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Track Number").Layout(gtx))
-		}),
-		layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
-			return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Play Count").Layout(gtx))
-		}),
-		layout.Rigid(
-			layout.Spacer{Width: unit.Dp(10)}.Layout,
-		),
-	)
+	outerMargins := layout.Inset{
+		Top:    unit.Dp(0),
+		Right:  unit.Dp(5),
+		Bottom: unit.Dp(0),
+		Left:   unit.Dp(5),
+	}
+	border := widget.Border{
+		Color:        color.NRGBA{R: 204, G: 204, B: 204, A: 255},
+		CornerRadius: unit.Dp(3),
+		Width:        unit.Dp(2),
+	}
+	return outerMargins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+				layout.Rigid(
+					layout.Spacer{Width: unit.Dp(5)}.Layout,
+				),
+				layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
+					return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "ID").Layout(gtx))
+				}),
+				layout.Flexed(1,
+					func(gtx layout.Context) layout.Dimensions {
+						return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Title").Layout(gtx))
+					},
+				),
+				layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
+					return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Artist").Layout(gtx))
+				}),
+				layout.Flexed(0.5, func(gtx layout.Context) layout.Dimensions {
+					return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Album").Layout(gtx))
+				}),
+				layout.Flexed(0.15, func(gtx layout.Context) layout.Dimensions {
+					return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Track Number").Layout(gtx))
+				}),
+				layout.Flexed(0.1, func(gtx layout.Context) layout.Dimensions {
+					return headerFieldsMargins(gtx, material.Label(th, unit.Dp(float32(20)), "Play Count").Layout(gtx))
+				}),
+			)
+		})
+	})
+
 }
 
 func buildSongLine(gtx layout.Context, s *Song) layout.Dimensions {

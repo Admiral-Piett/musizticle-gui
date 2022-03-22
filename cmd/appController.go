@@ -8,9 +8,10 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
-	"io"
 	"log"
 	"net/http"
+	"os"
+	"time"
 )
 
 //TODO: GENERAL
@@ -28,6 +29,7 @@ func (a *App) getSong(songId int) (beep.StreamSeekCloser, beep.Format, error) {
 		return nil, beep.Format{}, err
 	}
 	request.Header.Set("Content-Type", "multipart/form-data;")
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
 	client := &http.Client{}
 	resp, err := client.Do(request)
 	if err != nil {
@@ -149,6 +151,7 @@ func (a *App) clickSong(song *Song) {
 	a.playSong()
 }
 
+//TODO - HERE - check this out
 func (a *App) playSong() {
 	if a.selectedSong == nil {
 		a.selectedSong = a.songList[0]
@@ -229,15 +232,11 @@ func (a *App) initSongs() {
 		displayChange <- true
 	}()
 	url := fmt.Sprintf("%s/songs", HOST)
-	resp, err := http.Get(url)
+	err := Get(url, &a.songList,true)
 	if err != nil {
 		log.Println("Failed to get songs")
 		return
 	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	json.Unmarshal(body, &a.songList)
-	// Make the songs aware of where they are in the "master" songList
 	go func() {
 		for index, song := range a.songList {
 			song.songListIndex = index
@@ -245,4 +244,104 @@ func (a *App) initSongs() {
 	}()
 	a.songs.populated = true
 	log.Println("getSongsComplete")
+}
+
+func (a *App) startUp() {
+	loginRequired = true
+	// Attempt to login with any stored config we have
+	login()
+	if loginRequired {
+		return
+	}
+
+	a.initSongs()
+	//Put an invalid song id on the currentSongId queue to start with
+	currentSongId = -1
+	a.SetUpSpeaker()
+}
+
+func login() {
+	log.Println("loginStart")
+	url := fmt.Sprintf("%s/auth", HOST)
+
+	requestBody := AuthRequest{}
+	// If we don't have anything in the input fields (should only happen at start up), then try to read from the file.
+	//If we can't do that either just return and let them open the login menu.
+	if loginUsername.Text() == "" || loginPassword.Text() == "" {
+		authCreds, err := os.ReadFile("config")
+		if err != nil {
+			return
+		}
+		err = json.Unmarshal(authCreds, &requestBody)
+		if err != nil || requestBody.Username == "" || requestBody.Password == "" {
+			return
+		}
+	} else {
+		requestBody.Username = loginUsername.Text()
+		requestBody.Password = loginPassword.Text()
+	}
+
+	responseBody := &AuthResponse{}
+
+	err := Post(url, requestBody, responseBody, false)
+	if err != nil {
+		log.Printf("LoginFailure: %s\n", err)
+	}
+
+	expiration, err := time.Parse(time.RFC3339,responseBody.ExpirationTime)
+	if err != nil {
+		log.Printf("ExpirationParsingFailure: %s\n", err)
+	}
+	authToken = responseBody.AuthToken
+	// Subtract 5 minutes from the expiration time so we are always ahead of when it actually expires
+	authExpirationTime = expiration.Add(-5*time.Minute)
+
+	// Make sure these are set since we may have just got them from the file.
+	if loginUsername.Text() == "" || loginPassword.Text() == "" {
+		loginUsername.SetText(requestBody.Username)
+		loginPassword.SetText(requestBody.Password)
+	}
+	loginRequired = false
+
+	// Convert current credentials to bytes and save off to a file
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		log.Printf("SaveToFileFailure: %s\n", err)
+	}
+	_ = os.WriteFile("config", jsonBody, 0777)
+	log.Println("loginComplete")
+
+	// Reset this to 0, since we just got in successfully, and if we haven't already started the background
+	//process, do so.
+	backgroundLoginRetryCount = 0
+	if !backgroundLoginInProgress {
+		go backgroundLogin()
+	}
+}
+
+// FIXME - there's probably a more elegant way of handling this, but for now, we're here.
+func backgroundLogin() {
+	backgroundLoginInProgress = true
+	for {
+		switch time.Now().After(authExpirationTime) {
+		case true:
+			// Wait if this is set.  The user is going to get prompted to fill in their password anyway,
+			//	so we don't also have to try.
+			if loginRequired {
+				continue
+			}
+			log.Printf("BackgroundLoginRefreshStart - Attempt: %d\n", backgroundLoginRetryCount)
+			backgroundLoginRetryCount += 1
+			// This doesn't respond with an error, but it wil internally reset the `authExpirationTime` so if we come
+			//	around again here we'll know.
+			login()
+
+			if backgroundLoginRetryCount >= 5 {
+				log.Println("Error - retry limit exceeded")
+				loginRequired = true
+				return
+			}
+		}
+		time.Sleep(10*time.Second)
+	}
 }

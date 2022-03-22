@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -8,6 +11,10 @@ import (
 	"gioui.org/widget/material"
 	"golang.org/x/exp/shiny/materialdesign/icons"
 	"image/color"
+	"io"
+	"log"
+	"net/http"
+	"strconv"
 )
 
 // ----- Window Stuff -----
@@ -91,12 +98,99 @@ func songFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimension
 
 func headerFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
 	margins := layout.Inset{
-		Top:    unit.Dp(5),
+		Top:    unit.Dp(0),
 		Right:  unit.Dp(0),
-		Bottom: unit.Dp(10),
+		Bottom: unit.Dp(5),
 		Left:   unit.Dp(0),
 	}
 	return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return d
 	})
+}
+
+func generateDurationString(d int) string {
+    // Create zero padded strings for the duration of songs up to the hours level.
+	durationSeconds := d % 60
+	durationMinutes := d / 60
+	durationHours := 0
+
+	if durationMinutes >= 60 {
+		durationHours = durationMinutes / 60
+		durationMinutes = durationMinutes % 60
+		return fmt.Sprintf(
+		    "%s:%s:%s",
+            generateTimePaddedStrings(durationHours),
+            generateTimePaddedStrings(durationMinutes),
+            generateTimePaddedStrings(durationSeconds),
+        )
+	}
+    return fmt.Sprintf(
+        "%s:%s",
+        generateTimePaddedStrings(durationMinutes),
+        generateTimePaddedStrings(durationSeconds),
+    )
+}
+
+func generateTimePaddedStrings(i int) string {
+	if i < 10 {
+		// Pad with an extra zero if needed
+		return fmt.Sprintf("0%s", strconv.Itoa(i))
+	}
+	return strconv.Itoa(i)
+}
+
+// --------- HTTP --------------
+func Get(url string, responseValue interface{}, auth bool) error {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json;")
+	if auth {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(body, &responseValue)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func Post(url string, requestBody, responseValue interface{}, auth bool) error {
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		// TODO - figure out how to display a banner or something
+		log.Printf("CredentialMarshallingFailure: %s\n", err)
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return err
+	}
+	if auth {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	// TODO - see what happens with an empty response? - import
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(body, responseValue)
+	if err != nil {
+		return err
+	}
+	return nil
 }
