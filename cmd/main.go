@@ -26,7 +26,7 @@ func (a *App) draw() error {
 				gtx := layout.NewContext(&ops, e)
 
 				if loginButton.Clicked() {
-					a.login()
+					login()
 					op.InvalidateOp{}.Add(gtx.Ops)
 				}
 				if a.songs.reload.Clicked() {
@@ -147,10 +147,6 @@ func main() {
 		loginRequired = true
 		//go a.initSongs()
 		go a.startUp()
-
-		//Put an invalid song id on the currentSongId queue to start with
-		//currentSongId = -1
-		//a.SetUpSpeaker()
 
 		if err := a.draw(); err != nil {
 			log.Fatal(err)

@@ -14,6 +14,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 // ----- Window Stuff -----
@@ -97,14 +98,45 @@ func songFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimension
 
 func headerFieldsMargins(gtx layout.Context, d layout.Dimensions) layout.Dimensions {
 	margins := layout.Inset{
-		Top:    unit.Dp(5),
+		Top:    unit.Dp(0),
 		Right:  unit.Dp(0),
-		Bottom: unit.Dp(10),
+		Bottom: unit.Dp(5),
 		Left:   unit.Dp(0),
 	}
 	return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return d
 	})
+}
+
+func generateDurationString(d int) string {
+    // Create zero padded strings for the duration of songs up to the hours level.
+	durationSeconds := d % 60
+	durationMinutes := d / 60
+	durationHours := 0
+
+	if durationMinutes >= 60 {
+		durationHours = durationMinutes / 60
+		durationMinutes = durationMinutes % 60
+		return fmt.Sprintf(
+		    "%s:%s:%s",
+            generateTimePaddedStrings(durationHours),
+            generateTimePaddedStrings(durationMinutes),
+            generateTimePaddedStrings(durationSeconds),
+        )
+	}
+    return fmt.Sprintf(
+        "%s:%s",
+        generateTimePaddedStrings(durationMinutes),
+        generateTimePaddedStrings(durationSeconds),
+    )
+}
+
+func generateTimePaddedStrings(i int) string {
+	if i < 10 {
+		// Pad with an extra zero if needed
+		return fmt.Sprintf("0%s", strconv.Itoa(i))
+	}
+	return strconv.Itoa(i)
 }
 
 // --------- HTTP --------------
@@ -161,10 +193,4 @@ func Post(url string, requestBody, responseValue interface{}, auth bool) error {
 		return err
 	}
 	return nil
-}
-
-// --------- Auth --------------
-func generateHeaders() {
-	// TODO - HERE - generate headers for all the HTTP requests
-
 }

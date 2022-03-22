@@ -249,7 +249,7 @@ func (a *App) initSongs() {
 func (a *App) startUp() {
 	loginRequired = true
 	// Attempt to login with any stored config we have
-	a.login()
+	login()
 	if loginRequired {
 		return
 	}
@@ -260,7 +260,7 @@ func (a *App) startUp() {
 	a.SetUpSpeaker()
 }
 
-func (a *App) login() {
+func login() {
 	log.Println("loginStart")
 	url := fmt.Sprintf("%s/auth", HOST)
 
@@ -310,4 +310,38 @@ func (a *App) login() {
 	}
 	_ = os.WriteFile("config", jsonBody, 0777)
 	log.Println("loginComplete")
+
+	// Reset this to 0, since we just got in successfully, and if we haven't already started the background
+	//process, do so.
+	backgroundLoginRetryCount = 0
+	if !backgroundLoginInProgress {
+		go backgroundLogin()
+	}
+}
+
+// FIXME - there's probably a more elegant way of handling this, but for now, we're here.
+func backgroundLogin() {
+	backgroundLoginInProgress = true
+	for {
+		switch time.Now().After(authExpirationTime) {
+		case true:
+			// Wait if this is set.  The user is going to get prompted to fill in their password anyway,
+			//	so we don't also have to try.
+			if loginRequired {
+				continue
+			}
+			log.Printf("BackgroundLoginRefreshStart - Attempt: %d\n", backgroundLoginRetryCount)
+			backgroundLoginRetryCount += 1
+			// This doesn't respond with an error, but it wil internally reset the `authExpirationTime` so if we come
+			//	around again here we'll know.
+			login()
+
+			if backgroundLoginRetryCount >= 5 {
+				log.Println("Error - retry limit exceeded")
+				loginRequired = true
+				return
+			}
+		}
+		time.Sleep(10*time.Second)
+	}
 }

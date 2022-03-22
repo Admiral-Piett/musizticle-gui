@@ -29,6 +29,9 @@ var authToken string
 // TODO - SECRETIFY - environmentalize
 var authExpirationTime time.Time
 
+var backgroundLoginInProgress bool
+var backgroundLoginRetryCount int
+
 // TODO - SECRETIFY - environmentalize
 var NAV_QUEUE_PREVIOUS_LIMIT = 20
 var NAV_QUEUE_NEXT_LIMIT = 20
