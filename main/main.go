@@ -130,8 +130,6 @@ func resetProgress(duration int) {
 }
 
 func main() {
-    // TODO - NEXT - figure out how to calculate this to hit one as the song finishes.  Need to find the length of
-    //  the song somewhere - from the file maybe?
     progressIncrementer = make(chan float32)
     go func() {
         // create new window
